@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Dolomites 2026 — The Boys' Expedition | Master Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --ink:#0f1a20;
+    --panel:#1d2f38;
+    --panel2:#26404b;
+    --line:rgba(244,239,231,.14);
+    --orange:#ED6A2C;
+    --orange-soft:#f79a6b;
+    --cream:#F4EFE7;
+    --muted:#9db0ba;
+    --blue:#4FA3D1;
+    --green:#63B98A;
+    --sidebar:420px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--ink);color:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden}
+
+  #app{display:flex;height:100%;width:100%}
+
+  /* ---------- SIDEBAR ---------- */
+  #side{width:var(--sidebar);flex:0 0 var(--sidebar);height:100%;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#16262e 0%,#0f1a20 100%);border-right:1px solid var(--line);z-index:1200;
+    box-shadow:6px 0 30px rgba(0,0,0,.5)}
+  .brand{padding:18px 20px 14px;border-bottom:1px solid var(--line);position:relative;overflow:hidden;flex:0 0 auto}
+  .brand svg.topo{position:absolute;inset:0;width:100%;height:100%;opacity:.25;pointer-events:none}
+  .brand h1{position:relative;margin:0;font-size:21px;line-height:1.15;letter-spacing:-.02em;font-weight:800}
+  .brand h1 em{font-style:normal;color:var(--orange)}
+  .brand .dates{position:relative;margin-top:7px;font-size:12px;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+  .brand .sub{position:relative;margin-top:9px;font-size:12.5px;color:#c3d1d8;line-height:1.5}
+
+  .tabs{display:flex;gap:6px;padding:12px 14px 4px;flex:0 0 auto}
+  .tab{flex:1;text-align:center;padding:8px 6px;border-radius:8px;font-size:11.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;border:1px solid transparent;
+    transition:.15s;user-select:none}
+  .tab:hover{background:rgba(255,255,255,.1);color:var(--cream)}
+  .tab.on{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:0 3px 14px rgba(237,106,44,.35)}
+
+  #list{flex:1 1 auto;overflow-y:auto;padding:8px 14px 30px;scrollbar-width:thin;scrollbar-color:#3a5561 transparent}
+  #list::-webkit-scrollbar{width:8px}
+  #list::-webkit-scrollbar-thumb{background:#33505d;border-radius:8px}
+
+  .daycard{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:12px;margin:9px 0;
+    padding:12px 13px 12px 14px;cursor:pointer;position:relative;transition:.16s;overflow:hidden}
+  .daycard:hover{background:rgba(255,255,255,.09);transform:translateX(2px)}
+  .daycard.active{background:rgba(237,106,44,.13);border-color:rgba(237,106,44,.6)}
+  .daycard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--stripe,#3d5b68)}
+  .dhead{display:flex;align-items:baseline;gap:9px;margin-bottom:5px}
+  .dnum{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--orange);text-transform:uppercase;white-space:nowrap}
+  .ddate{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.05em;margin-left:auto;white-space:nowrap}
+  .dtitle{font-size:14.5px;font-weight:700;line-height:1.3;margin:0 0 5px}
+  .dmeta{font-size:11.5px;color:#a9bdc6;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .chip{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 7px;border-radius:5px;
+    background:rgba(255,255,255,.09);color:#cfdde3;white-space:nowrap}
+  .chip.o{background:rgba(237,106,44,.2);color:var(--orange-soft)}
+  .chip.b{background:rgba(79,163,209,.18);color:#9ed0ea}
+  .chip.g{background:rgba(99,185,138,.18);color:#a5dcbe}
+  .chip.warn{background:rgba(255,86,86,.18);color:#ff9b9b}
+
+  .sechead{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f8996;font-weight:800;
+    margin:20px 2px 2px;padding-top:12px;border-top:1px solid var(--line)}
+  .sechead:first-child{border-top:0;margin-top:6px;padding-top:0}
+
+  .note{font-size:11.5px;color:#93a8b2;line-height:1.6;background:rgba(255,255,255,.04);
+    border-left:2px solid var(--orange);border-radius:0 8px 8px 0;padding:9px 11px;margin:10px 0}
+  .note b{color:var(--cream)}
+
+  /* ---------- MAP ---------- */
+  #mapwrap{flex:1 1 auto;position:relative;height:100%}
+  #map{position:absolute;inset:0;background:#0b1116}
+  .leaflet-container{font-family:inherit;background:#0b1116}
+
+  /* markers */
+  .pin{position:relative;width:0;height:0}
+  .pin .dot{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-weight:800;color:#fff;border:2.5px solid #fff;
+    box-shadow:0 3px 12px rgba(0,0,0,.65);transition:transform .18s ease;cursor:pointer}
+  .pin:hover .dot{transform:translate(-50%,-50%) scale(1.18)}
+  .pin.hike .dot{width:32px;height:32px;font-size:14px;background:var(--orange)}
+  .pin.base .dot{width:36px;height:36px;font-size:15px;background:#12222a;border-color:var(--orange);color:var(--orange)}
+  .pin.poi  .dot{width:15px;height:15px;background:var(--cream);border-width:2px;border-color:#3a5866}
+  .pin.air  .dot{width:28px;height:28px;font-size:13px;background:var(--blue)}
+  .pin.up .lbl{top:auto !important;bottom:calc(50% + 20px)}
+  .pin .lbl{position:absolute;left:50%;top:calc(50% + 20px);transform:translateX(-50%);
+    background:rgba(12,22,28,.86);backdrop-filter:blur(4px);color:var(--cream);font-size:10.5px;font-weight:700;
+    letter-spacing:.03em;padding:2.5px 7px;border-radius:5px;white-space:nowrap;border:1px solid rgba(244,239,231,.16);
+    pointer-events:none;text-shadow:0 1px 2px #000}
+  .pin.base .lbl{top:calc(50% + 23px);border-color:rgba(237,106,44,.6);color:#ffd9c5}
+  .pin.poi .lbl{top:calc(50% + 10px);font-size:9.5px;font-weight:600;background:rgba(12,22,28,.7);color:#c6d5dc;padding:1.5px 5px}
+  /* de-clutter: waypoints only appear once you're zoomed into a hike */
+  .zfar .pin.poi{display:none}
+  .zfar .pin .lbl{font-size:9.5px;padding:2px 6px}
+  .pin .nightbadge{position:absolute;left:calc(50% + 11px);top:calc(50% - 22px);transform:translateX(-50%);
+    background:var(--orange);color:#fff;font-size:9px;font-weight:800;letter-spacing:.05em;padding:2px 5px;border-radius:4px;
+    border:1.5px solid #12222a;white-space:nowrap;pointer-events:none}
+
+  /* popups */
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--cream);border-radius:14px;padding:0;
+    box-shadow:0 18px 50px rgba(0,0,0,.7);border:1px solid rgba(244,239,231,.15);overflow:hidden}
+  .leaflet-popup-content{margin:0;width:316px !important;line-height:1.5}
+  .leaflet-popup-tip{background:var(--panel);border:1px solid rgba(244,239,231,.15)}
+  .leaflet-popup-close-button{color:#fff !important;font-size:22px !important;width:30px !important;height:30px !important;
+    padding:2px 0 0 0 !important;text-shadow:0 1px 3px #000;z-index:5}
+  .leaflet-container a.leaflet-popup-close-button:hover{color:var(--orange) !important}
+
+  .pop .img{height:132px;background:linear-gradient(135deg,#2b4552,#16262e);position:relative;overflow:hidden}
+  .pop .img img{width:100%;height:100%;object-fit:cover;display:block}
+  .pop .img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,26,32,0) 40%,rgba(15,26,32,.92) 100%)}
+  .pop .img .cap{position:absolute;left:14px;right:14px;bottom:9px;z-index:2}
+  .pop .img .kicker{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);
+    text-shadow:0 1px 4px #000;margin-bottom:2px}
+  .pop .img h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.2;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+  .pop .body{padding:12px 14px 14px}
+  .pop .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:11px}
+  .pop .st{background:rgba(255,255,255,.06);border-radius:7px;padding:6px 4px;text-align:center}
+  .pop .st .v{font-size:13px;font-weight:800;color:var(--cream);line-height:1.1}
+  .pop .st .k{font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#7f97a2;margin-top:3px}
+  .pop p{margin:0 0 9px;font-size:12.5px;color:#c8d6dc}
+  .pop .row{display:flex;gap:7px;font-size:11.5px;color:#b3c4cc;padding:5px 0;border-top:1px solid rgba(255,255,255,.07)}
+  .pop .row b{color:var(--cream);font-weight:700;flex:0 0 74px}
+  .pop .flag{font-size:11.5px;background:rgba(237,106,44,.14);border-left:2px solid var(--orange);
+    padding:7px 10px;border-radius:0 7px 7px 0;color:#f2c3aa;margin:9px 0 0}
+  .pop a.btn{display:inline-block;margin-top:11px;background:var(--orange);color:#fff;text-decoration:none;
+    font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:8px 13px;border-radius:7px}
+  .pop a.btn:hover{background:#ff7d3e}
+  .pop a.btn.ghost{background:rgba(255,255,255,.08);color:#cfdde3;margin-left:6px}
+  .pop a.btn.ghost:hover{background:rgba(255,255,255,.16)}
+
+  /* legend / controls */
+  .panelbox{background:rgba(15,26,32,.9);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:11px;
+    padding:11px 13px;box-shadow:0 8px 30px rgba(0,0,0,.55);color:var(--cream)}
+  .legend h4{margin:0 0 8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7f97a2;font-weight:800}
+  .lg{display:flex;align-items:center;gap:8px;font-size:11.5px;margin:5px 0;color:#c8d6dc}
+  .sw{width:22px;height:0;border-top-width:3px;border-top-style:solid;flex:0 0 22px;border-radius:2px}
+  .swd{width:13px;height:13px;border-radius:50%;flex:0 0 13px;border:2px solid #fff}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:11.5px;cursor:pointer;margin:6px 0;color:#c8d6dc;user-select:none}
+  .toggle input{accent-color:var(--orange);width:14px;height:14px;cursor:pointer}
+
+  #hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:900;font-size:11.5px;color:#a9bdc6;
+    pointer-events:none;transition:opacity .5s}
+  .leaflet-control-attribution{background:rgba(15,26,32,.82) !important;color:#7f97a2 !important;font-size:9.5px !important}
+  .leaflet-control-attribution a{color:#9db0ba !important}
+  .leaflet-bar a{background:#1d2f38 !important;color:var(--cream) !important;border-color:rgba(244,239,231,.14) !important}
+  .leaflet-bar a:hover{background:#2b4552 !important}
+  .leaflet-control-layers{background:rgba(15,26,32,.92) !important;color:var(--cream) !important;
+    border:1px solid var(--line) !important;border-radius:10px !important;backdrop-filter:blur(10px)}
+  .leaflet-control-layers-expanded{padding:10px 12px !important;font-size:12px}
+  .leaflet-control-layers-separator{border-color:var(--line) !important}
+
+  #burger{display:none}
+
+  @media (max-width:900px){
+    :root{--sidebar:100%}
+    #app{flex-direction:column}
+    #side{position:absolute;inset:0;transform:translateY(0);transition:transform .3s ease;height:100%}
+    #side.hidden{transform:translateY(calc(100% - 0px));pointer-events:none}
+    #mapwrap{position:absolute;inset:0}
+    #burger{display:flex;align-items:center;gap:7px;position:absolute;left:12px;top:12px;z-index:1300;
+      background:var(--orange);color:#fff;border:0;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:800;
+      letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:pointer}
+    .legend{display:none}
+    .leaflet-popup-content{width:250px !important}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand">
+      <svg class="topo" viewBox="0 0 420 130" preserveAspectRatio="none">
+        <g fill="none" stroke="#ED6A2C" stroke-width="1">
+          <path d="M-20 118 C 60 96, 110 128, 180 104 S 300 78, 440 100"/>
+          <path d="M-20 104 C 60 82, 112 114, 182 90 S 300 62, 440 86"/>
+          <path d="M-20 90 C 62 68, 114 100, 184 76 S 300 46, 440 72"/>
+          <path d="M-20 76 C 64 54, 116 86, 186 62 S 300 30, 440 58"/>
+          <path d="M-20 62 C 66 40, 118 72, 188 48 S 300 14, 440 44"/>
+          <path d="M-20 48 C 68 26, 120 58, 190 34 S 300 -2, 440 30"/>
+          <path d="M-20 34 C 70 12, 122 44, 192 20 S 300 -18, 440 16"/>
+        </g>
+      </svg>
+      <h1>Dolomites 2026:<br><em>The Boys' Expedition</em></h1>
+      <div class="dates">Tue 18 — Sun 23 Aug 2026</div>
+      <div class="sub">5 nights · 5 hikes · 1 car · 3 basecamps.<br>Click any pin or day card for the full briefing.</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on" data-filter="all">Everything</div>
+      <div class="tab" data-filter="hike">Hikes</div>
+      <div class="tab" data-filter="base">Nights</div>
+      <div class="tab" data-filter="travel">Travel</div>
+    </div>
+
+    <div id="list"></div>
+  </aside>
+
+  <div id="mapwrap">
+    <button id="burger">☰ Itinerary</button>
+    <div id="map"></div>
+    <div id="hint">Scroll to zoom · click pins for pop-outs</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ============================================================
+   DOLOMITES 2026 — MASTER MAP
+   Routes are indicative lines drawn through the real waypoints,
+   not surveyed GPX. Use the linked guides for turn-by-turn.
+   ============================================================ */
+
+const C = {
+  vce:[45.5053,12.3519],
+  sanvito:[46.4586,12.2069],
+  cortina:[46.5369,12.1357],
+  misurina:[46.5828,12.2549],
+  antorno:[46.5946,12.2653],
+  auronzo:[46.6128,12.2955],
+  forcLavaredo:[46.6197,12.3074],
+  locatelli:[46.6298,12.2946],
+  langalm:[46.6371,12.2765],
+  colMezzo:[46.6234,12.2708],
+  cadini1:[46.6047,12.2949],
+  cadini3:[46.60128,12.29417],
+  giau:[46.4834,12.0553],
+  gusela:[46.4906,12.0450],
+  nuvolau:[46.5031,12.0287],
+  averau:[46.5062,12.0322],
+  cinque:[46.5142,12.0341],
+  falzarego:[46.5192,12.0089],
+  lagazuoi:[46.5375,12.0022],
+  pordoi:[46.4882,11.8105],
+  sassTop:[46.5023,11.8168],
+  forcPordoi:[46.5054,11.8215],
+  pizboe:[46.5105,11.8283],
+  rifboe:[46.5145,11.8228],
+  vigo:[46.4180,11.6690],
+  ciampedie:[46.4262,11.6470],
+  gardeccia:[46.4448,11.6438],
+  vajolet:[46.4590,11.6270],
+  realberto:[46.4630,11.6203],
+  santner:[46.4640,11.6135],
+  ortisei:[46.5744,11.6725],
+  secedaTop:[46.5920,11.6600],
+  secedaRidge:[46.6015,11.6558],
+  fermeda:[46.5885,11.6740]
+};
+
+const IMG = f => "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(f) + "?width=640";
+
+const PIC = {
+  sanvito : IMG("San Vito di Cadore - frazione Chiapuzza - chiesa della Madonna della Salute.jpg"),
+  treCime : IMG("Drei Zinnen Tre Cime di Lavaredo Dolomites.jpg"),
+  cadini  : IMG("Forcella del Diavolo, Cadini di Misurina 3.jpg"),
+  nuvolau : IMG("Rifugio Nuvolau Dolomiti.JPG"),
+  giau    : IMG("Ra Gusela, view from Passo Giau.jpg"),
+  lagazuoi: IMG("Rifugio Lagazuoi ( Lagazoi) 2752m - View from Falzarego, Civetta, Pelmo.... - panoramio.jpg"),
+  pordoi  : IMG("Sass Pordoi.JPG"),
+  pizboe  : IMG("Rifugio Capanna Fassa Piz Boe winter.jpg"),
+  vajolet : IMG("Torri del Vajolet, rifugio Re Alberto.jpg"),
+  seceda  : IMG("The famous Secëda-Alm Ridgeline located in South Tyrol, Italy.jpg"),
+  fermeda : IMG("Pitla Fermeda Gran Fermeda da Col Raiser.jpg")
+};
+
+/* ---------- THE ITINERARY ---------- */
+const STOPS = [
+  {
+    id:"arrive", kind:"travel", n:"✈", day:"Tue 18 Aug", tag:"Wheels down",
+    title:"Venice Marco Polo → San Vito", label:"VCE 10:45",
+    at:C.vce, stripe:"#4FA3D1",
+    stats:[["10:45","LAND"],["11:00","CAR"],["~2h","DRIVE"],["5","SEATS"]],
+    blurb:"FR794 STN→VCE lands 10:45. Budget desk, then car pickup at <b>P1 car park, 3rd floor, 11:00</b> — VW T-Cross auto, 5-seater. Priority + 2 cabin bags already booked, so no belt queue.",
+    rows:[["Flight out","FR794 · 07:40 STN → 10:45 VCE"],["Drive","VCE → San Vito di Cadore, ~150km / 2h"],["Stop","Grab supermarket run in Cortina or Tai di Cadore before the valley"]],
+    flag:"Wear your heaviest boots on the plane. 35L overhead bag only.",
+    meta:"Land, collect the T-Cross, drive north into the mountains."
+  },
+  {
+    id:"basecamp", kind:"base", n:"1", day:"Tue 18 – Fri 21 Aug", tag:"Nights 1–3",
+    title:"The Valley Base — San Vito di Cadore", label:"Nights 1–3", badge:"N1–3",
+    at:C.sanvito, stripe:"#ED6A2C", pic:PIC.sanvito,
+    stats:[["3","NIGHTS"],["5","BEDS"],["6","GUESTS"],["1010m","ALT"]],
+    blurb:"Entire home Airbnb, 5 beds for 6 guests. Sits between Cortina (15 min north) and the Cadore valley — the staging post for the first three hikes.",
+    rows:[["Check-in","Tue 18 Aug"],["Check-out","Fri 21 Aug"],["Drive times","Passo Giau 35min · Tre Cime 1h · Falzarego 40min"]],
+    flag:"Last proper kitchen and washing machine of the trip. Do laundry Thursday night.",
+    meta:"Entire home, 5 beds / 6 guests. Home for the first half."
+  },
+  {
+    id:"h1", kind:"hike", n:"1", day:"Tue 18 PM or Wed 19", tag:"Hike 1 · flexible",
+    title:"Nuvolau & Averau Loop", label:"Hike 1 · Nuvolau",
+    at:C.nuvolau, stripe:"#ED6A2C", pic:PIC.nuvolau, focus:[46.497,12.043], zoom:13.4,
+    stats:[["8.8km","DIST"],["620m","GAIN"],["3¼–3¾h","TIME"],["MOD","GRADE"]],
+    blurb:"Loop from Passo Giau over Ra Gusela to <b>Rifugio Nuvolau</b> — the oldest hut in the Dolomites, perched alone on a 2,575m rock plinth — then down past Rifugio Averau to Cinque Torri and back.",
+    rows:[["Start","Passo Giau (free parking — arrive early, it fills)"],["Alt start","Le Cinque Torri (paid parking)"],["Waypoints","Ra Gusela → Nuvolau → Averau → Cinque Torri → Giau"],["Why","360° over Tofana, Pelmo, Civetta. Best short-effort payoff of the trip."]],
+    flag:"Short enough to do on arrival afternoon — and sunset from Nuvolau is the money shot. Head torches for the walk down.",
+    link:"https://thephotohikes.com/rifugio-nuvolau-and-averau-loop-hike/",
+    meta:"Passo Giau → Ra Gusela → Nuvolau → Averau → Cinque Torri.",
+    route:{name:"Hike 1 · Nuvolau loop", color:"#ED6A2C", pts:[C.giau,[46.4869,12.0500],C.gusela,[46.4954,12.0385],C.nuvolau,C.averau,[46.5108,12.0338],C.cinque,[46.5100,12.0455],[46.4960,12.0530],C.giau]},
+    pois:[
+      {at:C.giau,label:"Passo Giau 2,236m · park here"},
+      {at:C.gusela,label:"Ra Gusela"},
+      {at:C.nuvolau,label:"Rif. Nuvolau 2,575m"},
+      {at:C.averau,label:"Rif. Averau 2,413m"},
+      {at:C.cinque,label:"Cinque Torri"}
+    ]
+  },
+  {
+    id:"h2a", kind:"hike", n:"2", day:"Wed 19 Aug", tag:"Hike 2 · option A", group:"h2",
+    title:"Lagazuoi WWI Tunnels", label:"Hike 2A · Lagazuoi",
+    at:C.lagazuoi, stripe:"#ED6A2C", pic:PIC.lagazuoi, focus:[46.529,12.006], zoom:13.6,
+    stats:[["3.4km","ONE WAY"],["620m","GAIN"],["4–6h","TOTAL"],["HARD","GRADE"]],
+    blurb:"Trail 402 from Passo Falzarego up through the <b>WWI tunnel system</b> blasted into the mountain by Italian sappers — among the most extensive in the Dolomites — to Rifugio Lagazuoi and the 2,716m Piccolo Lagazuoi summit.",
+    rows:[["Start","Passo Falzarego, 46.5205, 12.0089 (paid parking at cable car base)"],["Gear","Head torch + spare batteries, helmet, gloves, extra layers — tunnels are cold and wet"],["Cheat code","Cable car up, tunnels down — saves the 620m grind"],["Season","June–October"]],
+    flag:"Rifugio Lagazuoi's terrace is the 'best sunset in the Alps for beers' pick from the briefing.",
+    link:"https://inafarawayland.com/lagazuoi-tunnels-day-hike/",
+    meta:"Trail 402 · WWI tunnels · head torch mandatory.",
+    route:{name:"Hike 2A · Lagazuoi", color:"#ED6A2C", pts:[C.falzarego,[46.5228,12.0072],[46.5270,12.0040],[46.5310,12.0018],[46.5348,12.0006],C.lagazuoi]},
+    pois:[
+      {at:C.falzarego,label:"Passo Falzarego 2,105m"},
+      {at:C.lagazuoi,label:"Rif. Lagazuoi 2,752m"}
+    ]
+  },
+  {
+    id:"h2b", kind:"hike", n:"2", up:true, day:"Wed 19 Aug", tag:"Hike 2 · option B", group:"h2", off:true,
+    title:"Piz Boè Summit — 3,152m", label:"Hike 2B · Piz Boè",
+    at:C.pizboe, stripe:"#ED6A2C", pic:PIC.pizboe, focus:[46.500,11.820], zoom:13.4,
+    stats:[["6.8km","DIST"],["400m","GAIN"],["3–4h","TIME"],["HARD","GRADE"]],
+    blurb:"The big-dog option. Sass Pordoi cable car does the heavy lifting, then trails 627A/627/638 across the Sella plateau to <b>the most accessible 3,000m summit in the Dolomites</b>.",
+    rows:[["Start","Sass Pordoi cable car top station (park 46.4882, 11.8105)"],["Waypoints","Forcella Pordoi 2,850m → Capanna Piz Fassa 3,152m → Rifugio Boè"],["Terrain","Cable-protected scrambling, but not classified via ferrata"],["Cost","~1h20 drive each way from San Vito — this eats the whole day"]],
+    flag:"Toggle in the legend to show/hide. Pick one: tunnels or the 3,000er.",
+    link:"https://inafarawayland.com/piz-boe-summit-hike/",
+    meta:"Sass Pordoi lift → Sella plateau → 3,152m summit.",
+    route:{name:"Hike 2B · Piz Boè", color:"#f79a6b", dash:"1,9", pts:[C.sassTop,[46.5040,11.8190],C.forcPordoi,[46.5082,11.8250],C.pizboe,[46.5130,11.8258],C.rifboe,[46.5100,11.8210],C.forcPordoi,C.sassTop]},
+    pois:[
+      {at:C.pordoi,label:"Passo Pordoi · park + lift"},
+      {at:C.sassTop,label:"Sass Pordoi 2,950m"},
+      {at:C.pizboe,label:"Piz Boè 3,152m"},
+      {at:C.rifboe,label:"Rif. Boè"}
+    ]
+  },
+  {
+    id:"h3", kind:"hike", n:"3", day:"Thu 20 Aug", tag:"Hike 3 · LOCKED IN",
+    title:"Tre Cime di Lavaredo + Cadini di Misurina", label:"Hike 3 · Tre Cime",
+    at:C.auronzo, stripe:"#ED6A2C", pic:PIC.treCime, focus:[46.616,12.288], zoom:13.2,
+    stats:[["~14km","COMBINED"],["610m","GAIN"],["5–6h","TIME"],["MOD","GRADE"]],
+    blurb:"The headline day. Full 10km loop around the three towers — Forcella Lavaredo, Rifugio Locatelli, Malga Langalm, Forcella Col di Mezzo — then the short 4.2km spur out to the <b>Cadini di Misurina</b> viewpoints.",
+    rows:[["Parking","Pre-booked online for Thu 20 Aug, €40 — valid 12h. <b>Ref is in the group chat.</b>"],["Start","Rifugio Auronzo, via the Misurina toll road"],["Cadini","3.7–4.2km, 260m. Third viewpoint is the quiet one and the best composition"],["Exposure","Cadini has short exposed sections with cable assistance"]],
+    flag:"This is the only date-locked hike of the trip — the parking ticket is tied to Thursday. Do not move it.",
+    link:"https://thephotohikes.com/tre-cime-di-lavaredo-hike/",
+    meta:"Loop the three towers, then the Cadini viewpoint spur.",
+    route:{name:"Hike 3 · Tre Cime loop", color:"#ED6A2C", pts:[C.auronzo,[46.6155,12.3020],C.forcLavaredo,[46.6250,12.3020],C.locatelli,[46.6340,12.2860],C.langalm,[46.6300,12.2730],C.colMezzo,[46.6180,12.2790],[46.6135,12.2880],C.auronzo]},
+    route2:{name:"Cadini spur", color:"#f79a6b", dash:"2,8", pts:[C.auronzo,[46.6095,12.2985],C.cadini1,C.cadini3]},
+    pois:[
+      {at:C.auronzo,label:"Rif. Auronzo · parking"},
+      {at:C.locatelli,label:"Rif. Locatelli 2,405m"},
+      {at:C.cadini3,label:"Cadini 3rd viewpoint"},
+      {at:C.antorno,label:"Lago d'Antorno"}
+    ]
+  },
+  {
+    id:"drive2", kind:"travel", n:"→", day:"Fri 21 Aug", tag:"Transfer",
+    title:"San Vito → Vigo di Fassa", label:"Transfer ~2h",
+    at:C.vigo, stripe:"#4FA3D1",
+    stats:[["~95km","DIST"],["~2h","DRIVE"],["2","PASSES"],["1","LIFT"]],
+    blurb:"Check out of the Airbnb and cross the range west: Cortina → Falzarego → Pordoi → Val di Fassa. Park at the <b>Funivia Catinaccio</b> station in Vigo di Fassa and leave the car there overnight.",
+    rows:[["Route","San Vito → Cortina → Passo Falzarego → Passo Pordoi → Vigo di Fassa"],["Parking","Two small free lots at the cable car (20–25 cars) — get there early, or paid parking in town"],["Lift","Funivia Catinaccio up to Ciampedié. Check times at catinacciodolomiti.it"]],
+    flag:"The car sleeps in Vigo di Fassa while you're up at Re Alberto. Pack the overnight kit into daypacks and leave the rest in the boot.",
+    meta:"Cross the range, park at the Catinaccio cable car, go up."
+  },
+  {
+    id:"h4", kind:"hike", n:"4", up:true, day:"Fri 21 Aug", tag:"Hike 4 · the big one",
+    title:"Torri del Vajolet → Rifugio Re Alberto", label:"Hike 4 · Vajolet",
+    at:C.gardeccia, stripe:"#ED6A2C", pic:PIC.vajolet, focus:[46.448,11.645], zoom:13.2,
+    stats:[["14.7km","DIST"],["950m","GAIN"],["4½–5½h","TIME"],["HARD","GRADE"]],
+    blurb:"From Ciampedié down to Gardeccia, then the long climb up the Vajolet valley past Rifugio Vajolet/Preuss and the steep, loose final pitch to <b>Rifugio Re Alberto</b>, sitting directly beneath the six towers.",
+    rows:[["Start","Funivia Catinaccio top station, Vigo di Fassa"],["Waypoints","Rif. Gardeccia → Rif. Vajolet / Paul Preuss → Rif. Re Alberto → Passo Laurin"],["Terrain","Steep final section, scrambling, loose rock"],["Extension","Rifugio Passo Santner +20–30 min if legs allow"]],
+    flag:"Hut arrival by 18:00. Dinner is served 18:30–19:15 only — do not be late. Allow 5½h plus stops from the lift.",
+    link:"https://thephotohikes.com/torri-del-vajolet-hike/",
+    meta:"14.7km, 950m up, hard. The trip's toughest day.",
+    route:{name:"Hike 4 · Vajolet", color:"#ED6A2C", pts:[C.ciampedie,[46.4310,11.6462],[46.4380,11.6455],C.gardeccia,[46.4500,11.6390],[46.4548,11.6320],C.vajolet,[46.4612,11.6238],C.realberto,C.santner]},
+    pois:[
+      {at:C.vigo,label:"Vigo di Fassa · car parks here"},
+      {at:C.ciampedie,label:"Ciampedié · lift top"},
+      {at:C.gardeccia,label:"Rif. Gardeccia"},
+      {at:C.vajolet,label:"Rif. Vajolet / Preuss"},
+      {at:C.santner,label:"Passo Santner (optional)"}
+    ]
+  },
+  {
+    id:"n4", kind:"base", n:"2", day:"Fri 21 – Sat 22 Aug", tag:"Night 4",
+    title:"Rifugio Re Alberto — 2,621m", label:"Night 4 · Re Alberto", badge:"N4",
+    at:C.realberto, stripe:"#ED6A2C", pic:PIC.vajolet,
+    stats:[["6","BEDS"],["2,621m","ALT"],["½","BOARD"],["18:00","ARRIVE BY"]],
+    blurb:"Six beds in a shared room, directly under the <b>Vajolet Towers</b>. Booking ref is in the group chat. The small lake behind the hut is the classic photo spot at first light.",
+    rows:[["Rations","Half-board. Dinner 18:30–19:15 strictly."],["Mandatory","Sleeping bag liner (duvets provided) · personal slippers · towel + soap"],["Reality check","No showers you'd want, no phone signal you can rely on. That's the point."]],
+    flag:"Liners are non-negotiable — you will be turned away without one.",
+    meta:"6 shared beds, half-board, right beneath the towers."
+  },
+  {
+    id:"h5", kind:"hike", n:"5", up:true, day:"Sat 22 Aug", tag:"Hike 5 · the finale",
+    title:"Seceda Ridgeline", label:"Hike 5 · Seceda",
+    at:C.secedaRidge, stripe:"#ED6A2C", pic:PIC.seceda, focus:[46.592,11.663], zoom:13.4,
+    stats:[["2.6km","LOOP"],["120m","GAIN"],["1h+","TIME"],["EASY","GRADE"]],
+    blurb:"Descend Vajolet, retrieve the car, drive to Ortisei, take the <b>Funivia Seceda</b> up to 2,510m and walk out along the tilted knife-edge ridge with the Odle group filling the sky.",
+    rows:[["Access","Funivia Seceda from Ortisei, ~€28 return (2024 price)"],["Short version","2.61km loop, 45min–1h from the top station"],["Long version","~17km / 1,200m+ if you hike the whole thing from Ortisei"],["Timing","Do it late afternoon — ridge light + fewer people, then drop to the hut"]],
+    flag:"Easy on paper, but the first panoramic viewpoint is exposed with no rail. Turn it into a longer wander — there's a lot of plateau up there.",
+    link:"https://thephotohikes.com/seceda-ridgeline-hike/",
+    meta:"Cable car up, walk the most famous ridge in Italy.",
+    route:{name:"Hike 5 · Seceda ridge", color:"#ED6A2C", pts:[C.secedaTop,[46.5955,11.6588],[46.5988,11.6570],C.secedaRidge,[46.6000,11.6610],[46.5960,11.6650],C.secedaTop]},
+    pois:[
+      {at:C.ortisei,label:"Ortisei · cable car base"},
+      {at:C.secedaTop,label:"Seceda 2,510m · lift top"},
+      {at:C.secedaRidge,label:"The ridgeline viewpoint"}
+    ]
+  },
+  {
+    id:"n5", kind:"base", n:"3", day:"Sat 22 – Sun 23 Aug", tag:"Night 5",
+    title:"Rifugio Fermeda — 2,109m", label:"Night 5 · Fermeda", badge:"N5",
+    at:C.fermeda, stripe:"#ED6A2C", pic:PIC.fermeda,
+    stats:[["2,109m","ALT"],["SAUNA","YES"],["HOT TUB","YES"],["EN-SUITE","YES"]],
+    blurb:"The reward. Tyrolean wooden 'Stevia' room with en-suite shower, <b>outdoor sauna and hot tub</b> to repair the legs, and a proper breakfast buffet before the descent.",
+    rows:[["Location","Seceda slopes above Ortisei"],["Recovery","Sauna + hot tub — five days of vertical gain, undone"],["Sun morning","Rich breakfast buffet, then down and out"]],
+    flag:"Last night. Nothing left to save the legs for.",
+    meta:"Sauna, hot tub, en-suite, breakfast buffet. Earned."
+  },
+  {
+    id:"depart", kind:"travel", n:"✈", day:"Sun 23 Aug", tag:"Wheels up",
+    title:"Ortisei → Venice → Stansted", label:"VCE 15:50",
+    at:C.vce, stripe:"#4FA3D1",
+    stats:[["14:00","CAR BACK"],["15:50","DEPART"],["~2h45","DRIVE"],["17:10","STN"]],
+    blurb:"Breakfast at Fermeda, descend, then the run south. Car back at VCE by <b>14:00</b>, FR793 departs 15:50, lands Stansted 17:10.",
+    rows:[["Drive","Ortisei → VCE ≈ 240km / 2h45 — leave by 10:30 to be safe"],["Fuel","Fill up before the airport; Budget will fleece you otherwise"],["Flight home","FR793 · 15:50 VCE → 17:10 STN"]],
+    flag:"Tight-ish. A 10:30 departure from Ortisei gives an hour of slack at the airport.",
+    meta:"Drop the car by 14:00, fly at 15:50."
+  }
+];
+
+const DRIVES = [
+  {name:"Drive · VCE → San Vito", pts:[C.vce,[45.90,12.30],[46.20,12.24],C.sanvito]},
+  {name:"Drive · San Vito → Vigo di Fassa", pts:[C.sanvito,C.cortina,C.falzarego,[46.529,11.960],[46.505,11.870],C.pordoi,[46.470,11.760],[46.430,11.690],C.vigo]},
+  {name:"Drive · Vigo → Ortisei", pts:[C.vigo,[46.450,11.700],[46.500,11.720],[46.545,11.700],C.ortisei]},
+  {name:"Drive · Ortisei → VCE", pts:[C.ortisei,[46.520,11.760],[46.400,11.850],[46.100,12.05],[45.80,12.20],C.vce]}
+];
+
+/* ---------- MAP SETUP ---------- */
+const map = L.map('map',{zoomControl:false,minZoom:6,maxZoom:17,zoomSnap:.25,scrollWheelZoom:true});
+
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:17,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'});
+const labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+  {maxZoom:19,subdomains:'abcd',opacity:.85,attribution:'&copy; CARTO'});
+const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  {maxZoom:17,subdomains:'abc',attribution:'&copy; OpenTopoMap (CC-BY-SA) · &copy; OpenStreetMap contributors'});
+const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  {maxZoom:19,subdomains:'abcd',attribution:'&copy; CARTO · &copy; OpenStreetMap contributors'});
+
+const satGroup = L.layerGroup([sat,labels]);
+satGroup.addTo(map);
+L.control.layers({"Satellite":satGroup,"Topo / trails":topo,"Dark":dark},null,{position:'topright'}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+
+const routeLayer = L.layerGroup().addTo(map);
+const driveLayer = L.layerGroup().addTo(map);
+const poiLayer   = L.layerGroup().addTo(map);
+const pinLayer   = L.layerGroup().addTo(map);
+const altLayer   = L.layerGroup();   // Piz Boè option, off by default
+
+/* ---------- DRIVES ---------- */
+DRIVES.forEach(d=>{
+  L.polyline(d.pts,{color:'#4FA3D1',weight:2,opacity:.55,dashArray:'3,7'})
+    .bindTooltip(d.name,{sticky:true,className:'drv'}).addTo(driveLayer);
+});
+
+/* ---------- POPUP BUILDER ---------- */
+function popHTML(s){
+  const img = s.pic
+    ? `<div class="img"><img src="${s.pic}" alt="" onerror="this.style.display='none'">
+         <div class="cap"><div class="kicker">${s.tag}</div><h3>${s.title}</h3></div></div>`
+    : `<div class="img"><div class="cap"><div class="kicker">${s.tag}</div><h3>${s.title}</h3></div></div>`;
+  const stats = s.stats ? `<div class="stats">${s.stats.map(x=>`<div class="st"><div class="v">${x[0]}</div><div class="k">${x[1]}</div></div>`).join('')}</div>`:'';
+  const rows  = s.rows ? s.rows.map(r=>`<div class="row"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('') : '';
+  const flag  = s.flag ? `<div class="flag">${s.flag}</div>`:'';
+  const gmaps = `https://www.google.com/maps/search/?api=1&query=${s.at[0]},${s.at[1]}`;
+  const link  = s.link ? `<a class="btn" href="${s.link}" target="_blank" rel="noopener">Full guide ↗</a>`:'';
+  return `<div class="pop">${img}<div class="body">${stats}<p>${s.blurb}</p>${rows}${flag}
+    ${link}<a class="btn ghost" href="${gmaps}" target="_blank" rel="noopener">Maps ↗</a></div></div>`;
+}
+
+/* ---------- MARKERS ---------- */
+const markers = {};
+STOPS.forEach(s=>{
+  const cls = s.kind==='base' ? 'base' : (s.kind==='travel' ? 'air' : 'hike');
+  const badge = s.badge ? `<div class="nightbadge">${s.badge}</div>` : '';
+  const icon = L.divIcon({className:'', iconSize:[0,0], html:
+    `<div class="pin ${cls}${s.up?' up':''}" data-kind="${s.kind}"><div class="dot">${s.n}</div>${badge}<div class="lbl">${s.label}</div></div>`});
+  const m = L.marker(s.at,{icon,riseOnHover:true,zIndexOffset: s.kind==='base'?1000:500})
+    .bindPopup(popHTML(s),{maxWidth:340,minWidth:316,
+      autoPanPaddingTopLeft:[30,66], autoPanPaddingBottomRight:[30,40]});
+  m.on('popupopen',()=>{
+    document.querySelectorAll('.daycard').forEach(c=>c.classList.toggle('active',c.dataset.id===s.id));
+  });
+  markers[s.id]=m;
+
+  const target = s.off ? altLayer : pinLayer;
+  m.addTo(target);
+
+  // routes
+  [s.route,s.route2].forEach(r=>{
+    if(!r) return;
+    const halo = L.polyline(r.pts,{color:'#0b1116',weight:8,opacity:.5});
+    const line = L.polyline(r.pts,{color:r.color,weight:3.5,opacity:.95,dashArray:r.dash||null,lineJoin:'round'})
+      .bindTooltip(r.name,{sticky:true});
+    const g = L.layerGroup([halo,line]);
+    g.addTo(s.off ? altLayer : routeLayer);
+  });
+
+  // small POIs
+  (s.pois||[]).forEach(p=>{
+    L.marker(p.at,{icon:L.divIcon({className:'',iconSize:[0,0],
+      html:`<div class="pin poi"><div class="dot"></div><div class="lbl">${p.label}</div></div>`}),
+      zIndexOffset:100}).addTo(s.off ? altLayer : poiLayer);
+  });
+});
+
+/* ---------- FIT ---------- */
+const CORE = L.latLngBounds(STOPS.filter(s=>s.kind!=='travel').map(s=>s.at).concat([C.pordoi,C.vigo]));
+function fitAll(){
+  map.invalidateSize({animate:false});
+  const mob = window.innerWidth<=900;
+  map.fitBounds(CORE,{paddingTopLeft:[mob?30:60, mob?100:50], paddingBottomRight:[mob?30:60, mob?70:50]});
+}
+map.setView([46.52,11.96],10);
+fitAll();
+setTimeout(fitAll,150);
+window.addEventListener('resize',()=>{clearTimeout(window.__rz);window.__rz=setTimeout(fitAll,250);});
+
+/* ---------- ZOOM-AWARE DECLUTTER ---------- */
+function zclass(){
+  const el = map.getContainer();
+  el.classList.toggle('zfar', map.getZoom() < 11.8);
+}
+map.on('zoomend', zclass); zclass();
+
+/* ---------- LEGEND + TOGGLES ---------- */
+const legend = L.control({position:'bottomleft'});
+legend.onAdd = function(){
+  const d = L.DomUtil.create('div','panelbox legend');
+  d.innerHTML = `
+    <h4>Legend</h4>
+    <div class="lg"><span class="swd" style="background:#ED6A2C"></span> Hike (numbered 1–5)</div>
+    <div class="lg"><span class="swd" style="background:#12222a;border-color:#ED6A2C"></span> Basecamp / night</div>
+    <div class="lg"><span class="swd" style="background:#4FA3D1"></span> Airport &amp; transfers</div>
+    <div class="lg"><span class="sw" style="border-top-color:#ED6A2C"></span> Hiking route</div>
+    <div class="lg"><span class="sw" style="border-top-color:#4FA3D1;border-top-style:dotted"></span> Driving leg</div>
+    <h4 style="margin-top:11px">Layers</h4>
+    <label class="toggle"><input type="checkbox" id="tAlt"> Show Piz Boè alternative</label>
+    <label class="toggle"><input type="checkbox" id="tDrive" checked> Driving legs</label>
+    <label class="toggle"><input type="checkbox" id="tPoi" checked> Waypoint labels</label>`;
+  L.DomEvent.disableClickPropagation(d);
+  return d;
+};
+legend.addTo(map);
+
+document.getElementById('tAlt').onchange = e => e.target.checked ? altLayer.addTo(map) : map.removeLayer(altLayer);
+document.getElementById('tDrive').onchange = e => e.target.checked ? driveLayer.addTo(map) : map.removeLayer(driveLayer);
+document.getElementById('tPoi').onchange  = e => e.target.checked ? poiLayer.addTo(map)   : map.removeLayer(poiLayer);
+
+/* ---------- SIDEBAR LIST ---------- */
+const listEl = document.getElementById('list');
+const SECTIONS = [
+  {after:null, label:"Phase 0 · Get there"},
+  {after:"basecamp", label:"Phase 1 · The Cortina classics"},
+  {after:"h3", label:"Phase 2 · Into the clouds"},
+  {after:"n4", label:"Phase 3 · The grand finale"}
+];
+
+function renderList(filter){
+  listEl.innerHTML='';
+  let first=true;
+  STOPS.forEach(s=>{
+    const sec = SECTIONS.find(x=>x.after===(first?null:null));
+    if(false){}
+    if(filter!=='all' && s.kind!==filter) return;
+    const card=document.createElement('div');
+    card.className='daycard';
+    card.style.setProperty('--stripe',s.stripe);
+    card.dataset.id=s.id;
+    const chips = (s.stats||[]).slice(0,3).map((x,i)=>`<span class="chip ${i===0?'o':''}">${x[0]} ${x[1].toLowerCase()}</span>`).join('');
+    card.innerHTML=`
+      <div class="dhead"><span class="dnum">${s.tag}</span><span class="ddate">${s.day}</span></div>
+      <div class="dtitle">${s.title}</div>
+      <div class="dmeta">${s.meta}</div>
+      <div class="chips">${chips}</div>`;
+    card.onclick=()=>select(s.id);
+    listEl.appendChild(card);
+    first=false;
+  });
+  if(filter==='all'){
+    const n=document.createElement('div');
+    n.className='note';
+    n.innerHTML=`<b>The one fixed point:</b> the Tre Cime parking pass is booked for <b>Thursday 20 Aug</b> — everything else flexes around it. Hikes 1 and 2 are interchangeable between Tuesday afternoon and Wednesday; Nuvolau is short enough for arrival day, Lagazuoi/Piz Boè needs a full one.`;
+    listEl.appendChild(n);
+    const n2=document.createElement('div');
+    n2.className='note';
+    n2.innerHTML=`<b>Routes are indicative</b> — drawn through the real waypoints for orientation, not surveyed GPX. Download the tracks from the linked guides before you go, and carry them offline.`;
+    listEl.appendChild(n2);
+  }
+}
+
+function select(id){
+  const s = STOPS.find(x=>x.id===id);
+  if(!s) return;
+  if(s.off && !map.hasLayer(altLayer)){
+    altLayer.addTo(map);
+    document.getElementById('tAlt').checked=true;
+  }
+  document.querySelectorAll('.daycard').forEach(c=>c.classList.toggle('active',c.dataset.id===id));
+  map.flyTo(s.focus||s.at, s.zoom|| (s.kind==='travel'?9:13.5), {duration:.9});
+  map.once('moveend',()=>setTimeout(()=>markers[id].openPopup(),60));
+  if(window.innerWidth<=900) document.getElementById('side').classList.add('hidden');
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    renderList(t.dataset.filter);
+  };
+});
+renderList('all');
+
+/* mobile */
+document.getElementById('burger').onclick=()=>document.getElementById('side').classList.toggle('hidden');
+if(window.innerWidth<=900) document.getElementById('side').classList.add('hidden');
+
+/* hint fade */
+setTimeout(()=>{const h=document.getElementById('hint'); if(h) h.style.opacity=0;},5000);
+</script>
+</body>
+</html>
