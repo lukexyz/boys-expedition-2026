@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dolomites 2026 — The Boys' Expedition</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --ink:#0d171d; --panel:#16262e; --panel2:#1d3039;
+  --line:rgba(244,239,231,.13);
+  --orange:#ED6A2C; --orange2:#f79a6b; --amber:#F2C14E;
+  --cream:#F4EFE7; --muted:#93a8b2; --blue:#4FA3D1; --green:#7FC9A0;
+  --r:18px; --mapw:41vw; --bar:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;background:var(--ink)}
+body{background:var(--ink);color:var(--cream);overflow-x:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* ============ persistent map ============ */
+#mappane{position:fixed;right:26px;top:calc(var(--bar) + 18px);bottom:26px;width:var(--mapw);z-index:40;
+  border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:#0b1116;
+  box-shadow:0 22px 60px rgba(0,0,0,.62)}
+#map{position:absolute;inset:0}
+.leaflet-container{background:#0b1116;font-family:inherit}
+#mapcap{position:absolute;left:0;right:0;bottom:0;z-index:500;padding:34px 18px 15px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(13,23,29,0),rgba(13,23,29,.93) 62%)}
+#mapcap .k{font-size:9.5px;font-weight:900;letter-spacing:.19em;text-transform:uppercase;color:var(--amber)}
+#mapcap .ttl{font-size:15px;font-weight:800;letter-spacing:-.015em;margin-top:3px;line-height:1.2}
+#mapkey{position:absolute;left:14px;top:14px;z-index:500;display:flex;flex-direction:column;gap:5px;
+  background:rgba(13,23,29,.82);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;
+  padding:9px 11px;pointer-events:none}
+#mapkey div{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:700;color:#bccbd2;white-space:nowrap}
+#mapkey i{width:17px;border-top:3px solid;border-radius:2px;display:block}
+#mapkey b.d{width:9px;height:9px;border-radius:50%;background:var(--amber);border:2px solid #fff;display:block}
+#mapfull{position:absolute;right:12px;top:12px;z-index:500;font-size:9.5px;font-weight:900;letter-spacing:.11em;
+  text-transform:uppercase;background:var(--orange);color:#fff;padding:7px 11px;border-radius:8px;transition:.16s}
+#mapfull:hover{background:#ff7d3e}
+
+/* ============ chapters ============ */
+.chapter{min-height:100vh;scroll-snap-align:start;scroll-snap-stop:always;
+  padding:calc(var(--bar) + 18px) calc(var(--mapw) + 46px) 26px 26px;display:flex;flex-direction:column}
+.chead{display:flex;align-items:baseline;gap:13px;margin-bottom:13px;flex:0 0 auto;flex-wrap:wrap}
+.cnum{font-size:10.5px;font-weight:900;letter-spacing:.2em;color:var(--orange)}
+.ctitle{font-size:clamp(18px,1.9vw,27px);font-weight:800;letter-spacing:-.025em;line-height:1}
+.cdate{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+
+/* ============ bento ============ */
+.bento{flex:1 1 auto;display:grid;grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(4,minmax(0,1fr));gap:12px;min-height:0}
+.t{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);position:relative;
+  overflow:hidden;padding:15px 17px;display:flex;flex-direction:column;justify-content:flex-end;
+  opacity:0;transform:translateY(15px) scale(.985);
+  transition:opacity .5s cubic-bezier(.2,.7,.3,1),transform .5s cubic-bezier(.2,.7,.3,1)}
+.in .t{opacity:1;transform:none}
+.t.photo{padding:0}
+.t.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.t.photo::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(13,23,29,.1) 0%,rgba(13,23,29,.34) 44%,rgba(13,23,29,.94) 100%)}
+.t.photo .lay{position:relative;z-index:2;padding:15px 17px;width:100%}
+.t.accent{background:linear-gradient(150deg,#3a2214,#1c2b32 62%);border-color:rgba(237,106,44,.36)}
+.t.amber{background:linear-gradient(150deg,#3a3016,#1c2b32 62%);border-color:rgba(242,193,78,.34)}
+.t.mid{justify-content:center}
+.t.topo::before{content:"";position:absolute;inset:0;opacity:.15;pointer-events:none;
+  background-image:repeating-radial-gradient(circle at 20% 120%,transparent 0 14px,rgba(237,106,44,.5) 14px 15px)}
+
+.kick{font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin-bottom:5px}
+.kick.a{color:var(--amber)} .kick.b{color:var(--blue)}
+.t h3{font-size:clamp(14px,1.15vw,19px);font-weight:800;letter-spacing:-.018em;line-height:1.15}
+.t h2{font-size:clamp(23px,2.6vw,42px);font-weight:900;letter-spacing:-.035em;line-height:.96}
+.t h2 em{font-style:normal;color:var(--orange)}
+.t p{font-size:clamp(10.5px,.72vw,12.5px);color:#b6c6ce;line-height:1.48;margin-top:6px}
+.t .big{font-size:clamp(24px,2.5vw,40px);font-weight:900;letter-spacing:-.035em;line-height:.9}
+.t .big.o{color:var(--orange)} .t .big.a{color:var(--amber)} .t .big.g{color:var(--green)}
+.t .unit{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.t .tag{position:absolute;top:12px;right:12px;z-index:3;font-size:8.5px;font-weight:900;letter-spacing:.11em;
+  text-transform:uppercase;padding:4px 8px;border-radius:6px;background:rgba(13,23,29,.82);
+  border:1px solid rgba(242,193,78,.5);color:var(--amber)}
+.t .tag.o{border-color:rgba(237,106,44,.55);color:var(--orange2)}
+.rows{margin-top:8px;display:flex;flex-direction:column}
+.rw{display:flex;gap:8px;font-size:clamp(10px,.68vw,11.5px);padding:5px 0;
+  border-top:1px solid rgba(255,255,255,.08);color:#adbfc7}
+.rw:first-child{border-top:0}
+.rw b{color:var(--cream);font-weight:800;flex:0 0 38%;max-width:112px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.chip{font-size:9px;font-weight:800;background:rgba(255,255,255,.09);color:#cfdde3;padding:3px 7px;
+  border-radius:5px;white-space:nowrap}
+.chip.a{background:rgba(242,193,78,.18);color:var(--amber)}
+.quote{font-size:clamp(12px,.96vw,15px);font-weight:700;line-height:1.34;letter-spacing:-.012em}
+.quote span{color:var(--amber)}
+.by{font-size:9px;color:#6f8996;margin-top:7px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+
+/* ============ chrome ============ */
+#bar{position:fixed;top:0;left:0;right:0;height:var(--bar);z-index:60;display:flex;align-items:center;gap:13px;
+  padding:0 22px;background:linear-gradient(180deg,rgba(13,23,29,.97),rgba(13,23,29,.7) 72%,transparent);
+  backdrop-filter:blur(9px)}
+#bar .b{font-size:15px;font-weight:900;letter-spacing:-.02em}
+#bar .b em{font-style:normal;color:var(--orange)}
+#bar .sub{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#bar .sp{flex:1}
+#steps{display:flex;gap:5px}
+#steps a{width:30px;height:26px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;
+  align-items:center;justify-content:center;font-size:10.5px;font-weight:900;color:var(--muted);transition:.16s}
+#steps a:hover{background:rgba(255,255,255,.14);color:var(--cream)}
+#steps a.on{background:var(--orange);color:#fff}
+#prog{position:fixed;left:0;top:0;height:2.5px;background:var(--orange);z-index:70;width:0;transition:width .12s linear}
+.hint{position:fixed;left:26px;bottom:16px;z-index:55;font-size:9.5px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:#66808d;transition:opacity .4s;pointer-events:none}
+
+.leaflet-control-attribution{background:rgba(13,23,29,.85)!important;color:#5f7885!important;font-size:8.5px!important}
+.leaflet-control-attribution a{color:#7e939d!important}
+
+/* markers */
+.pin{position:relative;width:0;height:0}
+.pin .dot{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-weight:900;color:#fff;border:2.5px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.7)}
+.pin.hk .dot{width:27px;height:27px;font-size:13px;background:var(--orange)}
+.pin.bd .dot{width:29px;height:29px;font-size:13px;background:#12222a;border-color:var(--orange);color:var(--orange)}
+.pin.ai .dot{width:23px;height:23px;font-size:11px;background:var(--blue)}
+.pin .lbl{position:absolute;left:50%;bottom:calc(50% + 17px);transform:translateX(-50%);
+  background:rgba(11,20,26,.88);color:var(--cream);font-size:9.5px;font-weight:700;padding:2.5px 7px;
+  border-radius:5px;white-space:nowrap;border:1px solid rgba(244,239,231,.17);text-shadow:0 1px 2px #000}
+.hered{position:relative;width:0;height:0}
+.hered .rg{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;
+  border:2.5px solid var(--amber);animation:pulse 2.1s infinite}
+.hered .co{position:absolute;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;
+  background:var(--amber);border:2px solid #fff}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,193,78,.55)}70%{box-shadow:0 0 0 20px rgba(242,193,78,0)}100%{box-shadow:0 0 0 0 rgba(242,193,78,0)}}
+
+/* ============ responsive ============ */
+@media (max-width:1240px){ :root{--mapw:37vw} .rw b{flex:0 0 44%} }
+@media (max-width:980px){
+  html{scroll-snap-type:none}
+  :root{--maph:33vh}
+  #mappane{top:calc(var(--bar) + 8px);left:12px;right:12px;width:auto;height:var(--maph);bottom:auto}
+  .chapter{min-height:auto;padding:calc(var(--bar) + var(--maph) + 24px) 12px 18px}
+  .chapter:not(:first-of-type){padding-top:20px}
+  .bento{grid-template-columns:repeat(2,1fr);grid-template-rows:none;grid-auto-rows:minmax(118px,auto);gap:10px}
+  .w2,.w3,.w4,.w5,.w6,.w8{grid-column:span 2}
+  .h2,.h3,.h4{grid-row:span 2}
+  #mapkey{display:none}
+  .hint{display:none}
+  .t p{font-size:11.5px}.t h2{font-size:29px}.t .big{font-size:32px}
+  .rw b{flex:0 0 38%;max-width:none}
+}
+.w2{grid-column:span 2}.w3{grid-column:span 3}.w4{grid-column:span 4}.w5{grid-column:span 5}
+.w6{grid-column:span 6}.w8{grid-column:span 8}
+.h1{grid-row:span 1}.h2{grid-row:span 2}.h3{grid-row:span 3}.h4{grid-row:span 4}
+</style>
+</head>
+<body>
+
+<div id="prog"></div>
+
+<header id="bar">
+  <span class="b">Dolomites <em>2026</em></span>
+  <span class="sub">The Boys' Expedition</span>
+  <span class="sp"></span>
+  <nav id="steps"></nav>
+</header>
+
+<div id="mappane">
+  <div id="map"></div>
+  <a id="mapfull" href="summary.html">Full map ↗</a>
+  <div id="mapkey">
+    <div><i style="border-color:#ED6A2C"></i>Planned hike</div>
+    <div><i style="border-color:#f79a6b;border-top-style:dashed"></i>Optional</div>
+    <div><i style="border-color:#4FA3D1;border-top-style:dotted"></i>Drive</div>
+    <div><b class="d"></b>Tonight's bed</div>
+  </div>
+  <div id="mapcap"><div class="k"></div><div class="ttl"></div></div>
+</div>
+
+<div class="hint" id="hint">Scroll ↓ · the map follows</div>
+
+<!-- ═══════ 1 ═══════ -->
+<section class="chapter" id="c1" data-label="The Trip">
+  <div class="chead"><span class="cnum">CHAPTER 01</span><span class="ctitle">The Expedition</span>
+    <span class="cdate">18 – 23 August 2026</span></div>
+  <div class="bento">
+    <div class="t photo w5 h2">
+      <img src="" data-src="treCime" alt="">
+      <div class="lay">
+        <div class="kick a">Six days · five hikes · three beds</div>
+        <h2>Fly in. Walk west.<br><em>Sleep high.</em></h2>
+        <p>London to Venice, then north into the Dolomites — three nights in the valley under Monte Pelmo, one in a hut beneath the Vajolet Towers, and a last one with a hot tub at 2,109 metres.</p>
+      </div>
+    </div>
+    <div class="t accent w3 h4">
+      <div class="kick">The shape of it</div>
+      <h3>East to west, low to high</h3>
+      <div class="rows">
+        <div class="rw"><b>Tue 18</b><span>Land, drive, settle in San Vito</span></div>
+        <div class="rw"><b>Wed 19</b><span>The big one — tunnels or a 3,000er</span></div>
+        <div class="rw"><b>Thu 20</b><span>Tre Cime · the day that's booked</span></div>
+        <div class="rw"><b>Fri 21</b><span>Cross the range, climb to the hut</span></div>
+        <div class="rw"><b>Sat 22</b><span>Seceda ridgeline, sauna, hot tub</span></div>
+        <div class="rw"><b>Sun 23</b><span>Breakfast at altitude, then home</span></div>
+      </div>
+    </div>
+    <div class="t w2 h1 mid topo"><div class="big o">5</div><div class="unit">Hikes</div></div>
+    <div class="t w3 h1 mid"><div class="big">~50<span style="font-size:.45em">km</span></div><div class="unit">On foot</div></div>
+    <div class="t w2 h1 mid"><div class="big a">2.9<span style="font-size:.45em">k</span></div><div class="unit">Metres up</div></div>
+    <div class="t w3 h1"><div class="kick b">One fixed point</div>
+      <h3>The Tre Cime pass is dated Thursday. Everything flexes around it.</h3></div>
+  </div>
+</section>
+
+<!-- ═══════ 2 ═══════ -->
+<section class="chapter" id="c2" data-label="Arrival">
+  <div class="chead"><span class="cnum">CHAPTER 02</span><span class="ctitle">Wheels Down</span>
+    <span class="cdate">Tuesday 18 August</span></div>
+  <div class="bento">
+    <div class="t photo w4 h2">
+      <img src="" data-src="pelmo" alt="">
+      <span class="tag">Nights 1–3</span>
+      <div class="lay"><div class="kick a">Basecamp</div><h3>San Vito di Cadore</h3>
+        <p>Entire-home Airbnb, five beds for six, in the shadow of Monte Pelmo. Fifteen minutes south of Cortina.</p>
+        <div class="chips"><span class="chip a">3 nights</span><span class="chip">5 beds</span><span class="chip">1,010m</span></div></div>
+    </div>
+    <div class="t accent w4 h2">
+      <div class="kick">07:40 · Stansted</div><h3>FR794 lands Venice 10:45</h3>
+      <div class="rows">
+        <div class="rw"><b>Car</b><span>11:00 · P1 car park, 3rd floor</span></div>
+        <div class="rw"><b>Bags</b><span>Priority + 2 cabin bags booked</span></div>
+        <div class="rw"><b>Wear</b><span>Heaviest boots on the plane</span></div>
+        <div class="rw"><b>Then</b><span>~2h drive north into the mountains</span></div>
+      </div>
+    </div>
+    <div class="t amber w5 h2">
+      <div class="kick a">Optional, but do it</div><h3>Nuvolau for sunset</h3>
+      <p>8.8km and 620m from Passo Giau — short enough for an arrival afternoon, and the oldest hut in the Dolomites sits alone on a rock plinth at 2,575m with 360° over Tofana, Pelmo and Civetta. Head torches for the walk down.</p>
+      <div class="chips"><span class="chip a">8.8 km</span><span class="chip a">620 m up</span><span class="chip">3¼–3¾ h</span><span class="chip">Free parking</span></div>
+    </div>
+    <div class="t photo w3 h1">
+      <img src="" data-src="nuvolau" alt="">
+      <span class="tag o">Hike 1</span>
+      <div class="lay"><div class="kick a">2,575m</div><h3>Rifugio Nuvolau</h3></div>
+    </div>
+    <div class="t w3 h1 mid"><div class="big">~2<span style="font-size:.45em">h</span></div><div class="unit">VCE → San Vito</div></div>
+  </div>
+</section>
+
+<!-- ═══════ 3 ═══════ -->
+<section class="chapter" id="c3" data-label="Classics">
+  <div class="chead"><span class="cnum">CHAPTER 03</span><span class="ctitle">The Cortina Classics</span>
+    <span class="cdate">Wednesday 19 – Thursday 20</span></div>
+  <div class="bento">
+    <div class="t photo w4 h2">
+      <img src="" data-src="treCime2" alt="">
+      <span class="tag o">Hike 3 · locked</span>
+      <div class="lay"><div class="kick a">Thursday · the headline</div><h3>Tre Cime di Lavaredo</h3>
+        <p>The full 10km loop anticlockwise — Forcella Lavaredo, Rifugio Locatelli, Malga Langalm, Forcella Col di Mezzo — flat, well-made trail with the towers turning beside you the whole way.</p>
+        <div class="chips"><span class="chip a">10 km</span><span class="chip a">350 m up</span><span class="chip">3–4 h</span></div></div>
+    </div>
+    <div class="t photo w4 h2">
+      <img src="" data-src="lagazuoi" alt="">
+      <span class="tag o">Hike 2A</span>
+      <div class="lay"><div class="kick a">Wednesday · 620m up</div><h3>Lagazuoi tunnels</h3>
+        <p>Trail 402 through a WWI tunnel system blasted into the mountain, out on top at 2,716m. Head torch, helmet, gloves — it's cold and wet in there.</p></div>
+    </div>
+    <div class="t photo w3 h1">
+      <img src="" data-src="pizboe" alt="">
+      <span class="tag">Or · 2B</span>
+      <div class="lay"><div class="kick a">3,152m</div><h3>Piz Boè</h3></div>
+    </div>
+    <div class="t accent w5 h1 mid"><div class="kick">Pick one</div>
+      <h3>Tunnels or the 3,000er — Piz Boè costs 1h20 of driving each way</h3></div>
+    <div class="t photo w3 h1">
+      <img src="" data-src="cadini" alt="">
+      <div class="lay"><div class="kick a">+4.2km spur</div><h3>Cadini di Misurina</h3></div>
+    </div>
+    <div class="t photo w3 h1">
+      <img src="" data-src="braies" alt="">
+      <span class="tag">Optional</span>
+      <div class="lay"><div class="kick a">Sunrise or skip</div><h3>Lago di Braies</h3></div>
+    </div>
+    <div class="t w2 h1 mid"><div class="big o">€40</div><div class="unit">Parking · Thu only</div></div>
+  </div>
+</section>
+
+<!-- ═══════ 4 ═══════ -->
+<section class="chapter" id="c4" data-label="The Hut">
+  <div class="chead"><span class="cnum">CHAPTER 04</span><span class="ctitle">Into the Clouds</span>
+    <span class="cdate">Friday 21 August</span></div>
+  <div class="bento">
+    <div class="t photo w5 h3">
+      <img src="" data-src="vajolet" alt="">
+      <span class="tag o">Hike 4 · the big one</span>
+      <div class="lay"><div class="kick a">14.7 km · 950 m up · 4½–5½ h</div>
+        <h2>Torri del <em>Vajolet</em></h2>
+        <p>Down from Ciampedié to Gardeccia, then the long climb up the valley past Rifugio Vajolet and a steep, loose final pitch to a hut sitting directly beneath six vertical towers.</p></div>
+    </div>
+    <div class="t accent w3 h3">
+      <div class="kick">Hut law · Rifugio Re Alberto</div><h3>Be there by 18:00</h3>
+      <div class="rows">
+        <div class="rw"><b>Dinner</b><span>18:30–19:15 only. Do not be late.</span></div>
+        <div class="rw"><b>Mandatory</b><span>Liner, slippers, towel, soap</span></div>
+        <div class="rw"><b>Beds</b><span>Six, shared, at 2,621m</span></div>
+        <div class="rw"><b>Expect</b><span>No showers you'd want. No signal.</span></div>
+      </div>
+    </div>
+    <div class="t photo w3 h1">
+      <img src="" data-src="catin" alt="">
+      <div class="lay"><div class="kick a">Vigo di Fassa · cable car</div><h3>Into the Rosengarten</h3></div>
+    </div>
+    <div class="t w2 h1 mid"><div class="big">95<span style="font-size:.45em">km</span></div><div class="unit">2 passes</div></div>
+    <div class="t amber w3 h1"><div class="kick a">Easy to get wrong</div>
+      <h3>The car sleeps in Vigo. Overnight kit into daypacks.</h3></div>
+  </div>
+</section>
+
+<!-- ═══════ 5 ═══════ -->
+<section class="chapter" id="c5" data-label="Finale">
+  <div class="chead"><span class="cnum">CHAPTER 05</span><span class="ctitle">The Finale</span>
+    <span class="cdate">Saturday 22 – Sunday 23</span></div>
+  <div class="bento">
+    <div class="t photo w5 h3">
+      <img src="" data-src="seceda2" alt="">
+      <span class="tag o">Hike 5</span>
+      <div class="lay"><div class="kick a">Saturday · late light</div>
+        <h2>The <em>Seceda</em> ridgeline</h2>
+        <p>Descend the Vajolet, collect the car, drive north to Ortisei, then ride to 2,510m and walk the tilted knife-edge with the Odle group filling the sky. Easy on paper — the first viewpoint is exposed with no rail.</p></div>
+    </div>
+    <div class="t amber w3 h2">
+      <div class="kick a">Night 5 · 2,109m</div><h3>Rifugio Fermeda</h3>
+      <p>Tyrolean wooden room, en-suite shower, outdoor sauna and a hot tub. Five days of vertical gain, undone in an evening.</p>
+      <div class="chips"><span class="chip a">Sauna</span><span class="chip a">Hot tub</span><span class="chip">Buffet</span></div>
+    </div>
+    <div class="t accent w3 h1">
+      <div class="kick">Sunday · the run home</div>
+      <div class="rows">
+        <div class="rw"><b>10:30</b><span>Leave Ortisei</span></div>
+        <div class="rw"><b>14:00</b><span>Car back at VCE</span></div>
+        <div class="rw"><b>15:50</b><span>FR793 · Stansted 17:10</span></div>
+      </div>
+    </div>
+    <div class="t w5 h1 mid topo">
+      <div class="quote">Five hikes, three beds, one car, about <span>2,900 metres</span> of ascent. Nothing left to save the legs for.</div>
+      <div class="by">Dolomites 2026 · The Boys' Expedition</div>
+    </div>
+    <div class="t w3 h1 mid"><div class="big a">2,510<span style="font-size:.4em">m</span></div><div class="unit">Top of the lift</div></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- photography (shared with the map page) ---------- */
+const IM = f => "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(f) + "?width=1400";
+const PHOTOS = {
+  pelmo:IM("Monte Pelmo 3168 m, 2015-11-04.jpg"),
+  nuvolau:IM("Rifugio Nuvolau Dolomiti.JPG"),
+  lagazuoi:IM("Rifugio Lagazuoi ( Lagazoi) 2752m - View from Falzarego, Civetta, Pelmo.... - panoramio.jpg"),
+  pizboe:IM("Rifugio Capanna Fassa Piz Boe winter.jpg"),
+  treCime:IM("Drei Zinnen Tre Cime di Lavaredo Dolomites.jpg"),
+  treCime2:IM("Drei Zinnen Tre Cime di Lavaredo Dolomites.jpg"),
+  cadini:IM("Forcella del Diavolo, Cadini di Misurina 3.jpg"),
+  braies:IM("Lago di Braies in agosto 01.JPG"),
+  catin:IM("Rosengarten-Catinaccio.jpg"),
+  vajolet:IM("Torri del Vajolet, rifugio Re Alberto.jpg"),
+  seceda2:IM("The famous Secëda-Alm Ridgeline located in South Tyrol, Italy.jpg")
+};
+document.querySelectorAll('img[data-src]').forEach(i=>{
+  const u=PHOTOS[i.dataset.src]; if(!u){i.style.display='none';return}
+  i.loading='lazy'; i.src=u; i.onerror=()=>{i.style.display='none'};
+});
+
+/* ---------- geography ---------- */
+const C={vce:[45.5053,12.3519],sanvito:[46.4586,12.2069],cortina:[46.5369,12.1357],
+ misurina:[46.5828,12.2549],antorno:[46.5946,12.2653],auronzo:[46.6128,12.2955],
+ forcLav:[46.6197,12.3074],locatelli:[46.6298,12.2946],langalm:[46.6371,12.2765],
+ colMezzo:[46.6234,12.2708],cadini3:[46.60128,12.29417],braies:[46.6947,12.0855],
+ giau:[46.4834,12.0553],gusela:[46.4906,12.0450],nuvolau:[46.5031,12.0287],
+ averau:[46.5062,12.0322],cinque:[46.5142,12.0341],falzarego:[46.5192,12.0089],
+ lagazuoi:[46.5375,12.0022],pordoi:[46.4882,11.8105],sassTop:[46.5023,11.8168],
+ forcPordoi:[46.5054,11.8215],pizboe:[46.5105,11.8283],rifboe:[46.5145,11.8228],
+ vigo:[46.4180,11.6690],ciampedie:[46.4262,11.6470],gardeccia:[46.4448,11.6438],
+ vajolet:[46.4590,11.6270],realberto:[46.4630,11.6203],santner:[46.4640,11.6135],
+ ortisei:[46.5744,11.6725],secedaTop:[46.5920,11.6600],secedaRidge:[46.6015,11.6558],
+ fermeda:[46.5885,11.6740]};
+
+const R = {
+  driveIn : {t:'drive',p:[C.vce,[45.90,12.30],[46.20,12.24],C.sanvito]},
+  nuvolau : {t:'opt',  p:[C.giau,[46.4869,12.0500],C.gusela,[46.4954,12.0385],C.nuvolau,C.averau,[46.5108,12.0338],C.cinque,[46.5100,12.0455],[46.4960,12.0530],C.giau]},
+  toGiau  : {t:'drive',p:[C.sanvito,[46.470,12.140],C.giau]},
+  toFalz  : {t:'drive',p:[C.sanvito,C.cortina,[46.527,12.060],C.falzarego]},
+  lagazuoi: {t:'hike', p:[C.falzarego,[46.5228,12.0072],[46.5270,12.0040],[46.5310,12.0018],[46.5348,12.0006],C.lagazuoi]},
+  toPordoi: {t:'drive',p:[C.falzarego,[46.510,11.930],[46.495,11.860],C.pordoi]},
+  pizboe  : {t:'opt',  p:[C.sassTop,[46.5040,11.8190],C.forcPordoi,[46.5082,11.8250],C.pizboe,[46.5130,11.8258],C.rifboe,[46.5100,11.8210],C.forcPordoi,C.sassTop]},
+  toTre   : {t:'drive',p:[C.sanvito,[46.500,12.190],C.misurina,C.antorno,C.auronzo]},
+  treCime : {t:'hike', p:[C.auronzo,[46.6155,12.3020],C.forcLav,[46.6250,12.3020],C.locatelli,[46.6340,12.2860],C.langalm,[46.6300,12.2730],C.colMezzo,[46.6180,12.2790],[46.6135,12.2880],C.auronzo]},
+  cadini  : {t:'opt',  p:[C.auronzo,[46.6095,12.2985],[46.6047,12.2949],C.cadini3]},
+  braies  : {t:'opt',  p:[C.antorno,[46.630,12.180],[46.665,12.120],C.braies]},
+  transfer: {t:'drive',p:[C.sanvito,C.cortina,C.falzarego,[46.529,11.960],[46.505,11.870],C.pordoi,[46.470,11.760],[46.430,11.690],C.vigo]},
+  liftVigo: {t:'lift', p:[C.vigo,C.ciampedie]},
+  vajolet : {t:'hike', p:[C.ciampedie,[46.4310,11.6462],[46.4380,11.6455],C.gardeccia,[46.4500,11.6390],[46.4548,11.6320],C.vajolet,[46.4612,11.6238],C.realberto]},
+  santner : {t:'opt',  p:[C.realberto,C.santner]},
+  descend : {t:'hike', p:[C.realberto,[46.4612,11.6238],C.vajolet,[46.4548,11.6320],[46.4500,11.6390],C.gardeccia,[46.4380,11.6455],C.ciampedie]},
+  toOrt   : {t:'drive',p:[C.vigo,[46.450,11.700],[46.500,11.720],[46.545,11.700],C.ortisei]},
+  liftSec : {t:'lift', p:[C.ortisei,C.secedaTop]},
+  seceda  : {t:'hike', p:[C.secedaTop,[46.5955,11.6588],[46.5988,11.6570],C.secedaRidge,[46.6000,11.6610],[46.5960,11.6650],C.secedaTop]},
+  toFerm  : {t:'opt',  p:[C.secedaTop,[46.5900,11.6680],C.fermeda]},
+  driveOut: {t:'drive',p:[C.ortisei,[46.520,11.760],[46.400,11.850],[46.100,12.05],[45.80,12.20],C.vce]}
+};
+
+/* ---------- what the map shows for each chapter ---------- */
+const SCENES = [
+  {k:"The whole trip",t:"Venice in, Venice out — six days west across the range",
+   routes:Object.keys(R),
+   pins:[['hk','1',C.nuvolau],['hk','2',C.lagazuoi],['hk','3',C.auronzo],['hk','4',C.gardeccia],['hk','5',C.secedaRidge],
+         ['bd','▲',C.sanvito,'San Vito'],['bd','▲',C.realberto,'Re Alberto'],['bd','▲',C.fermeda,'Fermeda'],
+         ['ai','✈',C.vce,'Venice']],
+   fit:[C.vce,C.sanvito,C.vigo,C.ortisei,C.auronzo,C.pordoi]},
+
+  {k:"Tuesday 18 August",t:"Land at Venice, drive north, walk up for sunset",
+   routes:['driveIn','toGiau','nuvolau'],
+   pins:[['hk','1',C.nuvolau,'Rifugio Nuvolau'],['bd','▲',C.sanvito,'San Vito · nights 1–3']],
+   here:C.sanvito, fit:[C.sanvito,C.giau,C.nuvolau,C.cinque,C.cortina]},
+
+  {k:"Wednesday 19 – Thursday 20",t:"Falzarego or the Sella, then the three towers",
+   routes:['toFalz','lagazuoi','toPordoi','pizboe','toTre','treCime','cadini','braies'],
+   pins:[['hk','2',C.lagazuoi,'Lagazuoi'],['hk','2',C.pizboe,'Piz Boè'],['hk','3',C.auronzo,'Tre Cime'],
+         ['bd','▲',C.sanvito,'San Vito']],
+   here:C.sanvito, fit:[C.pordoi,C.falzarego,C.lagazuoi,C.auronzo,C.braies,C.sanvito]},
+
+  {k:"Friday 21 August",t:"Cross two passes, ride up, climb 950 metres",
+   routes:['transfer','liftVigo','vajolet','santner'],
+   pins:[['hk','4',C.gardeccia,'Torri del Vajolet'],['bd','▲',C.realberto,'Re Alberto · night 4']],
+   here:C.realberto, fit:[C.vigo,C.ciampedie,C.gardeccia,C.realberto,C.santner]},
+
+  {k:"Saturday 22 – Sunday 23",t:"Down the Vajolet, north to Seceda, then home",
+   routes:['descend','toOrt','liftSec','seceda','toFerm','driveOut'],
+   pins:[['hk','5',C.secedaRidge,'Seceda ridgeline'],['bd','▲',C.fermeda,'Fermeda · night 5'],['ai','✈',C.vce,'Venice']],
+   here:C.fermeda, fit:[C.gardeccia,C.vigo,C.ortisei,C.secedaRidge,C.fermeda]}
+];
+
+/* ---------- the persistent map ---------- */
+const map = L.map('map',{zoomControl:false,attributionControl:true,minZoom:6,maxZoom:16,zoomSnap:.25,
+  scrollWheelZoom:false,dragging:true,doubleClickZoom:true});
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:16,attribution:'Esri, Maxar'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+  {maxZoom:19,subdomains:'abcd',opacity:.8,attribution:'CARTO'}).addTo(map);
+map.setView([46.52,11.98],9);
+
+const scene = L.layerGroup().addTo(map);
+const ST={hike:{color:'#ED6A2C',weight:3.6,opacity:.97},
+          opt:{color:'#f79a6b',weight:2.8,opacity:.9,dashArray:'2,8'},
+          drive:{color:'#4FA3D1',weight:2.2,opacity:.68,dashArray:'1,6'},
+          lift:{color:'#7FC9A0',weight:2.2,opacity:.85,dashArray:'8,5'}};
+
+function icon(cls,g,l){return L.divIcon({className:'',iconSize:[0,0],
+  html:`<div class="pin ${cls}"><div class="dot">${g}</div>${l?`<div class="lbl">${l}</div>`:''}</div>`});}
+
+let shown=-1;
+function showScene(i){
+  if(i===shown) return; shown=i;
+  const s=SCENES[i]; scene.clearLayers();
+  s.routes.forEach(k=>{
+    const r=R[k]; if(!r) return;
+    if(r.t==='hike') L.polyline(r.p,{color:'#0b1116',weight:8,opacity:.45}).addTo(scene);
+    L.polyline(r.p,ST[r.t]).addTo(scene);
+  });
+  (s.pins||[]).forEach(([c,g,at,l])=>L.marker(at,{icon:icon(c,g,l),interactive:false,
+    zIndexOffset:c==='bd'?900:400}).addTo(scene));
+  if(s.here) L.marker(s.here,{icon:L.divIcon({className:'',iconSize:[0,0],
+    html:'<div class="hered"><div class="rg"></div><div class="co"></div></div>'}),
+    interactive:false,zIndexOffset:300}).addTo(scene);
+
+  const mob=innerWidth<=980, pad=mob?[26,26]:[46,46];
+  map.invalidateSize({animate:false});
+  map.flyToBounds(L.latLngBounds(s.fit),{padding:pad,duration:1.0,maxZoom:13.5,
+    paddingBottomRight:mob?[26,44]:[46,74]});
+  const cap=document.getElementById('mapcap');
+  cap.querySelector('.k').textContent=s.k;
+  cap.querySelector('.ttl').textContent=s.t;
+}
+
+/* ---------- chapter tracking ---------- */
+const secs=[...document.querySelectorAll('.chapter')];
+const steps=document.getElementById('steps');
+secs.forEach((s,i)=>{const a=document.createElement('a');a.href='#'+s.id;a.textContent=i+1;steps.appendChild(a);});
+const stepEls=[...steps.children];
+secs.forEach(s=>[...s.querySelectorAll('.t')].forEach((t,i)=>t.style.transitionDelay=(i*50)+'ms'));
+
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting) return;
+    e.target.classList.add('in');
+    const i=secs.indexOf(e.target);
+    stepEls.forEach((el,j)=>el.classList.toggle('on',j===i));
+    showScene(i);
+  });
+},{threshold:.3,rootMargin:'-12% 0px -12% 0px'});
+secs.forEach(s=>io.observe(s));
+
+/* progress + hint */
+const prog=document.getElementById('prog'),hint=document.getElementById('hint');
+addEventListener('scroll',()=>{
+  const max=document.body.scrollHeight-innerHeight;
+  prog.style.width=(max>0?(scrollY/max)*100:0)+'%';
+  if(scrollY>140) hint.style.opacity=0;
+},{passive:true});
+
+/* keyboard paging */
+let idx=0;
+addEventListener('keydown',e=>{
+  if(!['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) return;
+  e.preventDefault();
+  idx=Math.max(0,Math.min(secs.length-1,idx+(e.key==='ArrowDown'||e.key==='PageDown'?1:-1)));
+  secs[idx].scrollIntoView({behavior:'smooth'});
+});
+addEventListener('scroll',()=>{
+  const mid=scrollY+innerHeight/2;
+  secs.forEach((s,i)=>{if(s.offsetTop<=mid&&s.offsetTop+s.offsetHeight>mid) idx=i;});
+},{passive:true});
+addEventListener('resize',()=>{clearTimeout(window.__rz);
+  window.__rz=setTimeout(()=>{const i=shown;shown=-1;showScene(i<0?0:i);},250);});
+
+secs[0].classList.add('in');
+showScene(0);
+</script>
+</body>
+</html>
