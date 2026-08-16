@@ -1,7 +1,7 @@
 # Dolomites 2026 — The Boys' Expedition
 
 Trip planning for six of us in the Dolomites, 18–23 August 2026.
-Five hikes, three basecamps, one hire car.
+Five hikes, three basecamps, two hire cars.
 
 ## Live pages
 
@@ -29,11 +29,8 @@ following you down the page.
 
 Nights: San Vito di Cadore (1–3) → Rifugio Re Alberto (4) → Rifugio Fermeda (5).
 
-## Two things still to sort
+## One thing still to sort
 
-- **Six of us, five seats.** The booked VW T-Cross is a 5-seater. Needs a bigger
-  vehicle class, a second car, or confirmation that two of the group are
-  travelling separately.
 - **Five beds, six guests** at the San Vito Airbnb — someone is on a sofa bed.
 
 ## Notes

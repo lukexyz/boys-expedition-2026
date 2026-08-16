@@ -324,9 +324,8 @@ const P = {
 /* ---------------- PLACES (everything that can get a card or a pin) -------- */
 const PL = {
   vce:{n:"Venice Marco Polo",at:C.vce,kind:"air",g:"✈",
-    kick:"Wheels down",blurb:"FR794 lands 10:45. Budget desk, then the car from <b>P1 car park, 3rd floor</b> at 11:00 — VW T-Cross auto, 5 seats. Priority and 2 cabin bags already booked.",
-    stats:[["10:45","LAND"],["11:00","CAR"],["~2h","DRIVE"],["5","SEATS"]],
-    flag:"<b>Six of us, five seats.</b> The booked T-Cross is a 5-seater — either a second car / different vehicle class is needed, or two of the group are arriving under their own steam. Worth confirming before August.",
+    kick:"Wheels down",blurb:"FR794 lands 10:45. Budget desk, then collect both hire cars from <b>P1 car park, 3rd floor</b> at 11:00. Priority and 2 cabin bags already booked.",
+    stats:[["10:45","LAND"],["11:00","PICKUP"],["~2h","DRIVE"],["2","CARS"]],
     rows:[["Out","FR794 · 07:40 STN → 10:45 VCE"],["Back","FR793 · 15:50 VCE → 17:10 STN"],["Shop","Supermarket in Cortina or Tai before the valley"]]},
 
   sanvito:{n:"San Vito di Cadore",at:C.sanvito,kind:"base",g:"1",nb:"N1–3",photo:P.pelmo,cred:"Monte Pelmo, which looms over the valley",
@@ -390,7 +389,7 @@ const PL = {
     kick:"Fri · the crossing",blurb:"Cross the range west into Val di Fassa, park at the Funivia Catinaccio in Vigo and ride up to Ciampedié. The Rosengarten wall is what you're walking into.",
     stats:[["~95km","DRIVE"],["~2h","TIME"],["2","PASSES"],["1","LIFT"]],
     rows:[["Route","San Vito → Cortina → Falzarego → Pordoi → Vigo di Fassa"],["Parking","Two small free lots at the cable car (20–25 cars). Get there early."]],
-    flag:"The car sleeps in Vigo while you're at Re Alberto. Overnight kit into daypacks, everything else stays in the boot."},
+    flag:"Both cars sleep in Vigo while you're at Re Alberto. Overnight kit into daypacks, everything else stays in the boots."},
 
   vajolet:{n:"Torri del Vajolet",at:C.gardeccia,kind:"hike",g:"4",photo:P.vajolet,cred:"Rifugio Re Alberto under the towers",
     kick:"Hike 4 · the big one",blurb:"Ciampedié down to Gardeccia, then the long climb up the Vajolet valley past Rifugio Vajolet/Preuss and a steep loose final pitch to <b>Rifugio Re Alberto</b>, directly beneath the six towers.",
@@ -419,8 +418,8 @@ const PL = {
     flag:"Last night. Nothing left to save the legs for."},
 
   ortisei:{n:"Ortisei / Val Gardena",at:C.ortisei,kind:"poi",photo:P.gardena,cred:"Val Gardena with the Sella and Sassolungo",
-    kick:"Sun · the run home",blurb:"Down the lift, then 240km south to Venice. Car back by <b>14:00</b>, FR793 departs 15:50, Stansted 17:10.",
-    stats:[["240km","DRIVE"],["2h45","TIME"],["14:00","CAR BACK"],["15:50","WHEELS UP"]],
+    kick:"Sun · the run home",blurb:"Down the lift, then 240km south to Venice. Both cars back by <b>14:00</b>, FR793 departs 15:50, Stansted 17:10.",
+    stats:[["240km","DRIVE"],["2h45","TIME"],["14:00","CARS BACK"],["15:50","WHEELS UP"]],
     rows:[["Leave by","10:30 from Ortisei for an hour of slack"],["Fuel","Fill up before the airport or Budget will fleece you"]]}
 };
 
@@ -463,7 +462,7 @@ const DAYS = [
   {id:"thu", dow:"Thu", dd:"20", date:"Thu 20 Aug",
    title:"Tre Cime — the one that's booked",
    kick:"Day 3 · Hike 3 · locked",
-   text:"Loop the three towers anticlockwise via Forcella Lavaredo and Rifugio Locatelli, then take the short spur out to the Cadini viewpoints on the way back to the car.",
+   text:"Loop the three towers anticlockwise via Forcella Lavaredo and Rifugio Locatelli, then take the short spur out to the Cadini viewpoints on the way back to the cars.",
    stats:[["~14km","COMBINED"],["610m","GAIN"],["5–6h","TIME"],["N3","BED"]],
    warn:"Parking is pre-booked for today only and the ticket runs 12 hours. This day cannot move.",
    cards:["treCime","cadini","braies"], here:"sanvito", bed:"San Vito di Cadore",
@@ -486,12 +485,12 @@ const DAYS = [
            {t:"lift",pts:[C.vigo,C.ciampedie],l:"Funivia Catinaccio → Ciampedié"},
            {t:"hike",pts:[C.ciampedie,[46.4310,11.6462],[46.4380,11.6455],C.gardeccia,[46.4500,11.6390],[46.4548,11.6320],C.vajolet,[46.4612,11.6238],C.realberto],l:"Hike 4 · to Rifugio Re Alberto"},
            {t:"opt",pts:[C.realberto,C.santner],l:"Optional · Passo Santner +30min"}],
-   pois:[["Vigo di Fassa · car parks here",C.vigo],["Ciampedié · lift top",C.ciampedie],["Rif. Gardeccia",C.gardeccia],["Rif. Vajolet / Preuss",C.vajolet],["Passo Santner",C.santner]]},
+   pois:[["Vigo di Fassa · cars park here",C.vigo],["Ciampedié · lift top",C.ciampedie],["Rif. Gardeccia",C.gardeccia],["Rif. Vajolet / Preuss",C.vajolet],["Passo Santner",C.santner]]},
 
   {id:"sat", dow:"Sat", dd:"22", date:"Sat 22 Aug",
    title:"Down, across, and up the famous ridge",
    kick:"Day 5 · Hike 5",
-   text:"Descend to Gardeccia and the lift, collect the car, drive north to Ortisei, then the Seceda cable car and the ridgeline in late light. Sauna and hot tub waiting at Fermeda.",
+   text:"Descend to Gardeccia and the lift, collect the cars, drive north to Ortisei, then the Seceda cable car and the ridgeline in late light. Sauna and hot tub waiting at Fermeda.",
    stats:[["~60km","DRIVE"],["2.6km","RIDGE"],["2510m","HIGH"],["N5","BED"]],
    warn:"Don't rush the descent — it's the same loose ground you came up, and you'll be doing it on hut sleep.",
    cards:["seceda","fermeda","ortisei"], here:"fermeda", bed:"Rifugio Fermeda",
@@ -506,8 +505,8 @@ const DAYS = [
   {id:"sun", dow:"Sun", dd:"23", date:"Sun 23 Aug",
    title:"Breakfast at altitude, then home",
    kick:"Day 6 · departure",
-   text:"Buffet at Fermeda, down the mountain, and 240km south to Venice. Car back by 14:00 and FR793 lifts off at 15:50.",
-   stats:[["10:30","LEAVE BY"],["2h45","DRIVE"],["14:00","CAR BACK"],["15:50","DEPART"]],
+   text:"Buffet at Fermeda, down the mountain, and 240km south to Venice. Both cars back by 14:00 and FR793 lifts off at 15:50.",
+   stats:[["10:30","LEAVE BY"],["2h45","DRIVE"],["14:00","CARS BACK"],["15:50","DEPART"]],
    warn:"Tightest day of the trip. Leaving Ortisei by 10:30 buys an hour of slack at VCE.",
    cards:["ortisei","fermeda"], here:"ortisei",
    focus:[C.ortisei,C.fermeda,C.vce],

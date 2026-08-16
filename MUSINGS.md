@@ -45,7 +45,7 @@ right call and I should have inferred it earlier from "make it look cool."
 | | |
 |---|---|
 | Flights | Ryanair, London Stansted ↔ Venice Marco Polo. Out Tue 18 Aug 07:40→10:45. Back Sun 23 Aug 15:50→17:10. Priority + 2 cabin bags booked. |
-| Car | VW T-Cross auto, 5-seater. Pick up VCE P1 car park 3rd floor, Tue 18 Aug 11:00. Drop Sun 23 Aug 14:00. |
+| Cars | Two hire cars booked, including a VW T-Cross auto. Pick up VCE P1 car park 3rd floor, Tue 18 Aug 11:00. Drop Sun 23 Aug 14:00. |
 | Nights 1–3 | Entire-home Airbnb, San Vito di Cadore. 5 beds / 6 guests. 18→21 Aug. |
 | Night 4 | Rifugio Re Alberto, 2,621m, beneath the Vajolet Towers. 6 beds shared. Half board, dinner 18:30–19:15 only. Liners mandatory. Booking ref `[redacted]`. |
 | Night 5 | Rifugio Fermeda, 2,109m, Seceda. Wooden room, en-suite, outdoor sauna + hot tub. |
@@ -81,7 +81,7 @@ flexible hikes fill the gaps:
 - Fri 21 — Re Alberto is booked for that night, and the hut needs a 5½h approach
   plus an 18:00 arrival, so the whole day is spoken for.
 - Sat 22 — Fermeda is booked, so: descend, drive to Ortisei, Seceda.
-- Sun 23 — car back at 14:00, fly 15:50.
+- Sun 23 — both cars back at 14:00, fly 15:50.
 
 That leaves exactly two open windows — Tuesday afternoon and Wednesday — for
 Hikes 1 and 2. The map assigns Nuvolau to Tuesday (8.8km / 620m is achievable on
@@ -95,9 +95,9 @@ aren't.
 ~1h20 of driving each way against 40 minutes to Falzarego. That's the fact worth
 surfacing, so it's in the card.
 
-One thing the map made visible that the deck didn't: **the car sleeps in Vigo di
+One thing the map made visible that the deck didn't: **both cars sleep in Vigo di
 Fassa on Friday night** while the group is up at Re Alberto. Everything that
-isn't going up the mountain stays in the boot. That falls straight out of
+isn't going up the mountain stays in the boots. That falls straight out of
 drawing the drive and the hike as separate lines.
 
 ---
@@ -246,24 +246,19 @@ PowerShell sequence. Two constraints worth recording:
 
 ## 8. Open questions
 
-1. **Six people, five seats.** The booked car is a VW T-Cross, a 5-seater, and the
-   party is six. Either the vehicle class needs changing, a second car is needed, or
-   two of the group are travelling independently — the original deck's aside that
-   "[redacted] and [redacted] can do whatever they like" hints at the last of these.
-   Unresolved, and worth settling well before August.
-2. **Five beds, six guests** at the San Vito Airbnb. Someone is on a sofa bed.
+1. **Five beds, six guests** at the San Vito Airbnb. Someone is on a sofa bed.
    Rifugio Re Alberto's six shared beds do fit the party exactly; Rifugio Fermeda's
    room configuration is unconfirmed.
-3. **Hike 1 vs Hike 2 ordering.** Nuvolau on Tuesday afternoon assumes the group
+2. **Hike 1 vs Hike 2 ordering.** Nuvolau on Tuesday afternoon assumes the group
    has appetite after a 07:40 flight and a two-hour drive. If not, both slide to
    Wednesday and Thursday, and something gets dropped.
-4. **Lagazuoi or Piz Boè.** Still genuinely undecided. Both drawn.
-5. **Seceda timing.** Saturday-evening ridge light is the best case, but it
+3. **Lagazuoi or Piz Boè.** Still genuinely undecided. Both drawn.
+4. **Seceda timing.** Saturday-evening ridge light is the best case, but it
    depends entirely on how the Vajolet descent goes on hut sleep.
-6. **Route accuracy.** Every line on this map is hand-drawn through real
+5. **Route accuracy.** Every line on this map is hand-drawn through real
    waypoints. It is an orientation aid, not a navigation tool. Download the GPX
    files from the linked guides.
-7. **Sunday is tight.** Ortisei to VCE is 2h45 against a 14:00 car drop. A 10:30
+6. **Sunday is tight.** Ortisei to VCE is 2h45 against a 14:00 drop for both cars. A 10:30
    departure gives one hour of slack and no more.
 
 ---
