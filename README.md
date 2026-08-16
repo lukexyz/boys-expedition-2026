@@ -4,8 +4,8 @@ Interactive master map for the trip, 18–23 August 2026.
 
 ### Live pages
 
-- **[Trip summary](https://lukexyz.github.io/boys-expedition-2026/summary.html)** — the interactive day-by-day master map, with routes, photo cards and nightly bases.
-- **[Scrollable planner](https://lukexyz.github.io/boys-expedition-2026/planner.html)** — the complete trip told as five sequential bento chapters beside a map that follows the story.
+- **[Trip summary](https://lukexyz.github.io/boys-expedition-2026/)** — the updated interactive master map, with routes, photo cards, nightly bases and six-person capacity checks.
+- **[Daily planner](https://lukexyz.github.io/boys-expedition-2026/bento.html)** — the new day-by-day plan told as five sequential bento chapters beside a map that follows the story.
 - **[Bento Slides planner](https://lukexyz.github.io/boys-expedition-2026/planner_sol5.6.html)** — the cinematic five-page presentation, with animated transitions and speaker notes.
 
 Five hikes, six travellers, three basecamps and one hire car, plotted on a single map with
