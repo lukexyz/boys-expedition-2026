@@ -9,7 +9,6 @@ Five hikes, three basecamps, one hire car.
 |---|---|---|
 | **The map** — interactive, day-by-day | https://lukexyz.github.io/boys-expedition-2026/ | **Opus 5** |
 | **The story** — five-chapter bento with a persistent map | https://lukexyz.github.io/boys-expedition-2026/bento.html | **Opus 5** |
-| Earlier bento/slides version | https://lukexyz.github.io/boys-expedition-2026/planner_sol5.6.html | *Sol 5.6* |
 | Earlier planner draft | https://lukexyz.github.io/boys-expedition-2026/planner.html | — |
 | Earlier summary draft | https://lukexyz.github.io/boys-expedition-2026/summary.html | — |
 

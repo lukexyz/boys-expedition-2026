@@ -106,6 +106,12 @@ a{color:inherit;text-decoration:none}
   align-items:center;justify-content:center;font-size:10.5px;font-weight:900;color:var(--muted);transition:.16s}
 #steps a:hover{background:rgba(255,255,255,.14);color:var(--cream)}
 #steps a.on{background:var(--orange);color:#fff}
+.navarrow{width:30px;height:26px;border:0;border-radius:7px;background:rgba(255,255,255,.08);color:var(--cream);
+  display:flex;align-items:center;justify-content:center;font:900 18px/1 inherit;cursor:pointer;transition:.16s}
+.navarrow:hover{background:rgba(255,255,255,.16)}
+.navarrow:disabled{opacity:.25;cursor:default}
+#daycount{display:none;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--cream);
+  white-space:nowrap;min-width:112px;text-align:center}
 #prog{position:fixed;left:0;top:0;height:2.5px;background:var(--orange);z-index:70;width:0;transition:width .12s linear}
 .hint{position:fixed;left:26px;bottom:16px;z-index:55;font-size:9.5px;font-weight:800;letter-spacing:.16em;
   text-transform:uppercase;color:#66808d;transition:opacity .4s;pointer-events:none}
@@ -142,15 +148,23 @@ a{color:inherit;text-decoration:none}
   :root{--maph:clamp(230px,30vh,310px)}
   #mappane{top:calc(var(--bar) + 8px);left:12px;right:12px;width:auto;height:var(--maph);bottom:auto}
   .chapter{min-height:auto;padding:calc(var(--bar) + var(--maph) + 24px) 12px 18px}
-  .chapter:not(:first-of-type){padding-top:20px}
+  .chapter{display:none}
+  .chapter.active{display:flex}
   .bento{grid-template-columns:repeat(2,1fr);grid-template-rows:none;grid-auto-rows:minmax(118px,auto);gap:10px}
   .w2,.w3{grid-column:span 1}
   .w4,.w5,.w6,.w8,.t.h3,.t.h4{grid-column:span 2}
-  .h2,.h3,.h4{grid-row:span 2}
+  .h2,.h3,.h4{grid-row:span 1}
+  .t.photo.h2,.t.photo.h3,.t.photo.h4{grid-row:span 2}
   #mapkey{display:none}
   .hint{display:none}
   .t p{font-size:11.5px}.t h2{font-size:29px}.t .big{font-size:32px}
   .rw b{flex:0 0 38%;max-width:none}
+}
+@media (max-width:700px){
+  #bar{padding:0 12px;gap:8px}
+  #bar .sub,#steps{display:none}
+  #daycount{display:block}
+  .navarrow{width:38px;height:34px;font-size:22px}
 }
 </style>
 </head>
@@ -162,7 +176,10 @@ a{color:inherit;text-decoration:none}
   <span class="b">Dolomites <em>2026</em></span>
   <span class="sub">The Boys' Expedition</span>
   <span class="sp"></span>
+  <button class="navarrow" id="prevDay" type="button" aria-label="Previous chapter">‹</button>
   <nav id="steps"></nav>
+  <span id="daycount" aria-live="polite"></span>
+  <button class="navarrow" id="nextDay" type="button" aria-label="Next chapter">›</button>
 </header>
 
 <div id="mappane">
@@ -180,7 +197,7 @@ a{color:inherit;text-decoration:none}
 <div class="hint" id="hint">Scroll ↓ · the map follows</div>
 
 <!-- ═══════ 1 ═══════ -->
-<section class="chapter" id="c1" data-label="The Trip">
+<section class="chapter active" id="c1" data-label="The Trip">
   <div class="chead"><span class="cnum">CHAPTER 01</span><span class="ctitle">The Expedition</span>
     <span class="cdate">18 – 23 August 2026</span></div>
   <div class="bento">
@@ -485,16 +502,52 @@ function showScene(i){
 /* ---------- chapter tracking ---------- */
 const secs=[...document.querySelectorAll('.chapter')];
 const steps=document.getElementById('steps');
-secs.forEach((s,i)=>{const a=document.createElement('a');a.href='#'+s.id;a.textContent=i+1;steps.appendChild(a);});
+const prevDay=document.getElementById('prevDay'),nextDay=document.getElementById('nextDay');
+const daycount=document.getElementById('daycount');
+const isPaged=()=>matchMedia('(max-width:980px)').matches;
+let idx=Math.max(0,secs.findIndex(s=>'#'+s.id===location.hash));
+
+secs.forEach((s,i)=>{
+  const a=document.createElement('a');a.href='#'+s.id;a.textContent=i+1;
+  a.setAttribute('aria-label',s.dataset.label);a.onclick=e=>{e.preventDefault();go(i)};
+  steps.appendChild(a);
+});
 const stepEls=[...steps.children];
 secs.forEach(s=>[...s.querySelectorAll('.t')].forEach((t,i)=>t.style.transitionDelay=(i*50)+'ms'));
 
+function markCurrent(i){
+  idx=Math.max(0,Math.min(secs.length-1,i));
+  stepEls.forEach((el,j)=>el.classList.toggle('on',j===idx));
+  prevDay.disabled=idx===0; nextDay.disabled=idx===secs.length-1;
+  daycount.textContent=`${idx+1} / ${secs.length} · ${secs[idx].dataset.label}`;
+}
+
+function go(i,push=true){
+  i=Math.max(0,Math.min(secs.length-1,i));
+  markCurrent(i);
+  if(isPaged()){
+    secs.forEach((s,j)=>s.classList.toggle('active',j===i));
+    secs[i].classList.add('in');
+    scrollTo({top:0,behavior:'auto'});
+    showScene(i);
+  }else secs[i].scrollIntoView({behavior:'smooth'});
+  if(push) history.pushState(null,'','#'+secs[i].id);
+}
+
+prevDay.onclick=()=>go(idx-1);
+nextDay.onclick=()=>go(idx+1);
+addEventListener('popstate',()=>{
+  const i=secs.findIndex(s=>'#'+s.id===location.hash); go(i<0?0:i,false);
+});
+
 const io=new IntersectionObserver(es=>{
+  if(isPaged()) return;
   es.forEach(e=>{
     if(!e.isIntersecting) return;
     e.target.classList.add('in');
     const i=secs.indexOf(e.target);
-    stepEls.forEach((el,j)=>el.classList.toggle('on',j===i));
+    markCurrent(i);
+    history.replaceState(null,'','#'+secs[i].id);
     showScene(i);
   });
 },{threshold:.3,rootMargin:'-12% 0px -12% 0px'});
@@ -509,22 +562,31 @@ addEventListener('scroll',()=>{
 },{passive:true});
 
 /* keyboard paging */
-let idx=0;
 addEventListener('keydown',e=>{
-  if(!['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) return;
+  if(!['ArrowRight','ArrowLeft','PageDown','PageUp'].includes(e.key)) return;
   e.preventDefault();
-  idx=Math.max(0,Math.min(secs.length-1,idx+(e.key==='ArrowDown'||e.key==='PageDown'?1:-1)));
-  secs[idx].scrollIntoView({behavior:'smooth'});
+  go(idx+(e.key==='ArrowRight'||e.key==='PageDown'?1:-1));
 });
 addEventListener('scroll',()=>{
+  if(isPaged()) return;
   const mid=scrollY+innerHeight/2;
   secs.forEach((s,i)=>{if(s.offsetTop<=mid&&s.offsetTop+s.offsetHeight>mid) idx=i;});
 },{passive:true});
+let wasPaged=isPaged();
 addEventListener('resize',()=>{clearTimeout(window.__rz);
-  window.__rz=setTimeout(()=>{const i=shown;shown=-1;showScene(i<0?0:i);},250);});
+  window.__rz=setTimeout(()=>{
+    const nowPaged=isPaged();
+    secs.forEach((s,j)=>s.classList.toggle('active',!nowPaged||j===idx));
+    if(nowPaged&&!wasPaged) scrollTo({top:0,behavior:'auto'});
+    if(!nowPaged&&wasPaged) secs[idx].scrollIntoView({behavior:'auto'});
+    wasPaged=nowPaged; shown=-1; showScene(idx);
+  },250);
+});
 
-secs[0].classList.add('in');
-showScene(0);
+secs.forEach((s,j)=>s.classList.toggle('active',!isPaged()||j===idx));
+secs[idx].classList.add('in');
+markCurrent(idx);
+showScene(idx);
 </script>
 </body>
 </html>
