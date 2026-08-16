@@ -135,6 +135,8 @@ a{color:inherit;text-decoration:none}
 .hered .co{position:absolute;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;
   background:var(--amber);border:2px solid #fff}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,193,78,.55)}70%{box-shadow:0 0 0 20px rgba(242,193,78,0)}100%{box-shadow:0 0 0 0 rgba(242,193,78,0)}}
+@keyframes dayFromRight{from{opacity:.2;transform:translateX(34px)}to{opacity:1;transform:none}}
+@keyframes dayFromLeft{from{opacity:.2;transform:translateX(-34px)}to{opacity:1;transform:none}}
 
 /* desktop grid placement helpers — mobile overrides must come after these */
 .w2{grid-column:span 2}.w3{grid-column:span 3}.w4{grid-column:span 4}.w5{grid-column:span 5}
@@ -149,7 +151,9 @@ a{color:inherit;text-decoration:none}
   #mappane{top:calc(var(--bar) + 8px);left:12px;right:12px;width:auto;height:var(--maph);bottom:auto}
   .chapter{min-height:auto;padding:calc(var(--bar) + var(--maph) + 24px) 12px 18px}
   .chapter{display:none}
-  .chapter.active{display:flex}
+  .chapter.active{display:flex;touch-action:pan-y}
+  .chapter.swipe-next{animation:dayFromRight .24s cubic-bezier(.2,.7,.3,1)}
+  .chapter.swipe-prev{animation:dayFromLeft .24s cubic-bezier(.2,.7,.3,1)}
   .bento{grid-template-columns:repeat(2,1fr);grid-template-rows:none;grid-auto-rows:minmax(118px,auto);gap:10px}
   .w2,.w3{grid-column:span 1}
   .w4,.w5,.w6,.w8,.t.h3,.t.h4{grid-column:span 2}
@@ -524,9 +528,16 @@ function markCurrent(i){
 
 function go(i,push=true){
   i=Math.max(0,Math.min(secs.length-1,i));
+  const from=idx;
   markCurrent(i);
   if(isPaged()){
     secs.forEach((s,j)=>s.classList.toggle('active',j===i));
+    secs[i].classList.remove('swipe-next','swipe-prev');
+    if(i!==from){
+      void secs[i].offsetWidth;
+      secs[i].classList.add(i>from?'swipe-next':'swipe-prev');
+      setTimeout(()=>secs[i].classList.remove('swipe-next','swipe-prev'),280);
+    }
     secs[i].classList.add('in');
     scrollTo({top:0,behavior:'auto'});
     showScene(i);
@@ -536,6 +547,28 @@ function go(i,push=true){
 
 prevDay.onclick=()=>go(idx-1);
 nextDay.onclick=()=>go(idx+1);
+
+/* horizontal touch flicks + trackpad swipes; leave the Leaflet map free to pan */
+const blocksSwipe=target=>target instanceof Element&&!!target.closest('#mappane,a,button,input,textarea,select');
+let swipeStart=null,wheelLocked=false;
+addEventListener('pointerdown',e=>{
+  if(!isPaged()||e.pointerType!=='touch'||blocksSwipe(e.target)) return;
+  swipeStart={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId};
+},{passive:true});
+addEventListener('pointerup',e=>{
+  if(!swipeStart||e.pointerId!==swipeStart.id) return;
+  const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y,dt=performance.now()-swipeStart.t;
+  swipeStart=null;
+  if(Math.abs(dx)<54||Math.abs(dx)<Math.abs(dy)*1.25||(dt>700&&Math.abs(dx)<110)) return;
+  go(idx+(dx<0?1:-1));
+},{passive:true});
+addEventListener('pointercancel',()=>swipeStart=null,{passive:true});
+addEventListener('wheel',e=>{
+  if(!isPaged()||wheelLocked||blocksSwipe(e.target)||Math.abs(e.deltaX)<42||Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.2) return;
+  e.preventDefault(); wheelLocked=true; go(idx+(e.deltaX>0?1:-1));
+  setTimeout(()=>wheelLocked=false,650);
+},{passive:false});
+
 addEventListener('popstate',()=>{
   const i=secs.findIndex(s=>'#'+s.id===location.hash); go(i<0?0:i,false);
 });
