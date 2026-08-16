@@ -520,6 +520,11 @@ const steps=document.getElementById('steps');
 const prevDay=document.getElementById('prevDay'),nextDay=document.getElementById('nextDay');
 const daycount=document.getElementById('daycount');
 const isPaged=()=>matchMedia('(max-width:980px)').matches;
+const mapPane=document.getElementById('mappane');
+function syncMapInteraction(){
+  if(isPaged()){map.dragging.disable();map.touchZoom.disable()}
+  else{map.dragging.enable();map.touchZoom.enable()}
+}
 let idx=Math.max(0,secs.findIndex(s=>'#'+s.id===location.hash));
 
 secs.forEach((s,i)=>{
@@ -548,7 +553,6 @@ function go(i,push=true){
       const direction=i>from?'next':'prev';
       void secs[i].offsetWidth;
       secs[i].classList.add('swipe-'+direction);
-      const mapPane=document.getElementById('mappane');
       mapPane.classList.remove('map-swipe-next','map-swipe-prev');
       void mapPane.offsetWidth;
       mapPane.classList.add('map-swipe-'+direction);
@@ -567,21 +571,78 @@ function go(i,push=true){
 prevDay.onclick=()=>go(idx-1);
 nextDay.onclick=()=>go(idx+1);
 
-/* horizontal touch flicks + trackpad swipes; leave the Leaflet map free to pan */
-const blocksSwipe=target=>target instanceof Element&&!!target.closest('#mappane,a,button,input,textarea,select');
-let swipeStart=null,wheelLocked=false;
+/* Hinge-style full-view drag: follows the finger, reverses, commits or springs back */
+const blocksSwipe=target=>target instanceof Element&&!!target.closest('a,button,input,textarea,select');
+let swipeStart=null,dragX=0,dragActive=false,dragFrame=0,swipeBusy=false,wheelLocked=false;
+const swipeTargets=()=>[mapPane,secs[idx]];
+function clearDragStyles(targets=swipeTargets()){
+  targets.forEach(el=>{el.style.transform='';el.style.opacity='';el.style.willChange=''});
+  document.body.classList.remove('dragging-day');
+}
+function paintDrag(){
+  dragFrame=0;
+  const edge=(idx===0&&dragX>0)||(idx===secs.length-1&&dragX<0);
+  const x=edge?dragX*.28:dragX;
+  const progress=Math.min(1,Math.abs(x)/innerWidth),tilt=(x/innerWidth)*6;
+  swipeTargets().forEach((el,n)=>{
+    el.style.willChange='transform,opacity';
+    el.style.transform=`perspective(1200px) translate3d(${x}px,0,0) rotateY(${tilt}deg) scale(${1-progress*(n?0.035:0.018)})`;
+    el.style.opacity=String(1-progress*.28);
+  });
+}
+function springBack(){
+  const targets=swipeTargets();swipeBusy=true;
+  const animations=targets.map(el=>el.animate([
+    {transform:el.style.transform||'none',opacity:el.style.opacity||1},
+    {transform:'none',opacity:1}
+  ],{duration:280,easing:'cubic-bezier(.2,.9,.25,1)'}));
+  Promise.all(animations.map(a=>a.finished.catch(()=>{}))).then(()=>{clearDragStyles(targets);swipeBusy=false});
+}
+function throwToDay(direction){
+  const destination=idx+direction;
+  if(destination<0||destination>=secs.length){springBack();return}
+  const targets=swipeTargets(),off=(direction>0?-1:1)*innerWidth*1.16;
+  swipeBusy=true;
+  const animations=targets.map(el=>el.animate([
+    {transform:el.style.transform||'none',opacity:el.style.opacity||1},
+    {transform:`perspective(1200px) translate3d(${off}px,0,0) rotateY(${direction>0?-8:8}deg) scale(.94)`,opacity:0}
+  ],{duration:240,easing:'cubic-bezier(.55,.02,.8,.3)'}));
+  Promise.all(animations.map(a=>a.finished.catch(()=>{}))).then(()=>{
+    clearDragStyles(targets);swipeBusy=false;go(destination);
+  });
+}
 addEventListener('pointerdown',e=>{
-  if(!isPaged()||e.pointerType!=='touch'||blocksSwipe(e.target)) return;
+  if(!isPaged()||swipeBusy||e.pointerType!=='touch'||blocksSwipe(e.target)) return;
   swipeStart={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId};
-},{passive:true});
+  dragX=0;dragActive=false;
+},{passive:true,capture:true});
+addEventListener('pointermove',e=>{
+  if(!swipeStart||e.pointerId!==swipeStart.id) return;
+  const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y;
+  if(!dragActive){
+    if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)*1.1){swipeStart=null;return}
+    if(Math.abs(dx)<10||Math.abs(dx)<Math.abs(dy)*1.1) return;
+    dragActive=true;document.body.classList.add('dragging-day');
+  }
+  e.preventDefault();dragX=dx;
+  if(!dragFrame) dragFrame=requestAnimationFrame(paintDrag);
+},{passive:false,capture:true});
 addEventListener('pointerup',e=>{
   if(!swipeStart||e.pointerId!==swipeStart.id) return;
-  const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y,dt=performance.now()-swipeStart.t;
+  const dt=Math.max(1,performance.now()-swipeStart.t),velocity=Math.abs(dragX)/dt;
   swipeStart=null;
-  if(Math.abs(dx)<54||Math.abs(dx)<Math.abs(dy)*1.25||(dt>700&&Math.abs(dx)<110)) return;
-  go(idx+(dx<0?1:-1));
-},{passive:true});
-addEventListener('pointercancel',()=>swipeStart=null,{passive:true});
+  if(!dragActive){dragX=0;return}
+  dragActive=false;
+  const direction=dragX<0?1:-1;
+  if(Math.abs(dragX)>innerWidth*.18||velocity>.55) throwToDay(direction);
+  else springBack();
+  dragX=0;
+},{passive:true,capture:true});
+addEventListener('pointercancel',()=>{
+  swipeStart=null;
+  if(dragActive){dragActive=false;springBack()}
+  dragX=0;
+},{passive:true,capture:true});
 addEventListener('wheel',e=>{
   if(!isPaged()||wheelLocked||blocksSwipe(e.target)||Math.abs(e.deltaX)<42||Math.abs(e.deltaX)<Math.abs(e.deltaY)*1.2) return;
   e.preventDefault(); wheelLocked=true; go(idx+(e.deltaX>0?1:-1));
@@ -631,13 +692,14 @@ addEventListener('resize',()=>{clearTimeout(window.__rz);
     secs.forEach((s,j)=>s.classList.toggle('active',!nowPaged||j===idx));
     if(nowPaged&&!wasPaged) scrollTo({top:0,behavior:'auto'});
     if(!nowPaged&&wasPaged) secs[idx].scrollIntoView({behavior:'auto'});
-    wasPaged=nowPaged; shown=-1; showScene(idx);
+    wasPaged=nowPaged;syncMapInteraction();shown=-1;showScene(idx);
   },250);
 });
 
 secs.forEach((s,j)=>s.classList.toggle('active',!isPaged()||j===idx));
 secs[idx].classList.add('in');
 markCurrent(idx);
+syncMapInteraction();
 showScene(idx);
 </script>
 </body>
