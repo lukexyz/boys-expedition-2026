@@ -198,7 +198,14 @@ clipped every pin to nothing. Renamed the pin class to `num` and they came back.
 
 The lesson: in a single-file artifact where CSS and generated markup share one
 namespace, a generic class name like `.card` is a landmine. Prefix everything
-that belongs to a subsystem.
+that belongs to a subsystem. (This bit twice — the bento page's map caption used
+`.t`, collided with the tile rule, and inherited `opacity: 0`.)
+
+**A copy bug that mattered more than any of the CSS ones.** A summary tile read
+"Six days, five hikes, three beds" with a stat block ending in "3 BEDS". "Beds"
+meant *basecamps* — three places the group sleeps — but it reads as three people,
+and the party is six. Counts in a stat block get read as headcount whether or not
+that's what they mean. All party-size copy is now explicit: "6 · OF US".
 
 **A near-miss on verification.** An earlier test run showed Leaflet's panes
 stacking vertically instead of overlapping, which looked like a serious layout
@@ -239,16 +246,24 @@ PowerShell sequence. Two constraints worth recording:
 
 ## 8. Open questions
 
-1. **Hike 1 vs Hike 2 ordering.** Nuvolau on Tuesday afternoon assumes the group
+1. **Six people, five seats.** The booked car is a VW T-Cross, a 5-seater, and the
+   party is six. Either the vehicle class needs changing, a second car is needed, or
+   two of the group are travelling independently — the original deck's aside that
+   "[redacted] and [redacted] can do whatever they like" hints at the last of these.
+   Unresolved, and worth settling well before August.
+2. **Five beds, six guests** at the San Vito Airbnb. Someone is on a sofa bed.
+   Rifugio Re Alberto's six shared beds do fit the party exactly; Rifugio Fermeda's
+   room configuration is unconfirmed.
+3. **Hike 1 vs Hike 2 ordering.** Nuvolau on Tuesday afternoon assumes the group
    has appetite after a 07:40 flight and a two-hour drive. If not, both slide to
    Wednesday and Thursday, and something gets dropped.
-2. **Lagazuoi or Piz Boè.** Still genuinely undecided. Both drawn.
-3. **Seceda timing.** Saturday-evening ridge light is the best case, but it
+4. **Lagazuoi or Piz Boè.** Still genuinely undecided. Both drawn.
+5. **Seceda timing.** Saturday-evening ridge light is the best case, but it
    depends entirely on how the Vajolet descent goes on hut sleep.
-4. **Route accuracy.** Every line on this map is hand-drawn through real
+6. **Route accuracy.** Every line on this map is hand-drawn through real
    waypoints. It is an orientation aid, not a navigation tool. Download the GPX
    files from the linked guides.
-5. **Sunday is tight.** Ortisei to VCE is 2h45 against a 14:00 car drop. A 10:30
+7. **Sunday is tight.** Ortisei to VCE is 2h45 against a 14:00 car drop. A 10:30
    departure gives one hour of slack and no more.
 
 ---
