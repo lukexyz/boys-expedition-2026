@@ -11,7 +11,7 @@
   --line:rgba(244,239,231,.14);
   --orange:#ED6A2C; --orange2:#f79a6b; --amber:#F2C14E;
   --cream:#F4EFE7; --muted:#93a8b2; --blue:#4FA3D1;
-  --topbar:64px; --plan:322px; --cards:294px;
+  --topbar:70px; --plan:322px; --cards:294px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--ink);color:var(--cream);overflow:hidden;
@@ -39,15 +39,16 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .arrow:disabled{opacity:.25;cursor:default;background:rgba(255,255,255,.04)}
 #days{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding:3px 2px}
 #days::-webkit-scrollbar{display:none}
-.day{flex:0 0 auto;padding:6px 13px 7px;border-radius:9px;background:rgba(255,255,255,.05);
-  border:1px solid transparent;text-align:center;line-height:1.15;transition:.15s;min-width:64px}
+.day{flex:0 0 auto;padding:5px 12px 6px;border-radius:9px;background:rgba(255,255,255,.05);
+  border:1px solid transparent;text-align:center;line-height:1.1;transition:.15s;min-width:68px}
 .day:hover{background:rgba(255,255,255,.11)}
 .day .dw{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .day .dd{font-size:13px;font-weight:800;margin-top:1px}
+.day .dwx{font-size:8px;font-weight:900;color:#82bddb;margin-top:4px;white-space:nowrap;min-height:9px}
 .day.on{background:var(--orange);border-color:var(--orange);box-shadow:0 3px 16px rgba(237,106,44,.4)}
 .day.on .dw{color:rgba(255,255,255,.82)}
 .day.on .dd{color:#fff}
-.day.all .dd{font-size:11.5px;letter-spacing:.05em;padding-top:3px}
+.day.on .dwx{color:#fff}.day.all .dd{font-size:11.5px;letter-spacing:.05em;padding-top:2px}
 
 #topright{flex:0 0 auto;display:flex;gap:7px;align-items:center}
 .tbtn{padding:7px 12px;border-radius:8px;background:rgba(255,255,255,.06);font-size:11px;font-weight:700;
@@ -230,12 +231,14 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   .tbtn{padding:6px 9px;font-size:9.5px;letter-spacing:.04em}
   #topright{gap:5px}
   #nav{justify-content:flex-start;gap:4px}
-  .day{min-width:50px;padding:5px 9px 6px}
+  .day{min-width:58px;padding:4px 8px 5px}
   .day .dd{font-size:12px}
+  .day .dwx{font-size:7.5px;margin-top:3px}
   .arrow{width:28px;height:28px}
 }
 @media (max-width:960px){
-  :root{--topbar:58px}
+  :root{--topbar:68px}
+  #brand,#tPlan,#tOpt{display:none}
   #brand .d{display:none}
   #plan{max-height:44vh;width:min(320px,72vw)}
   #brief{display:none}
@@ -750,11 +753,28 @@ function paintNav(){
   if(on) on.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
 }
 
+function paintDateWeather(){
+  const buttons=[...document.querySelectorAll('#days .day')];
+  if(!regionalWeather){
+    buttons.forEach((button,i)=>{const slot=button.querySelector('.dwx');if(slot)slot.textContent=i?'—':'Weather'});
+    return;
+  }
+  const tripDays=briefWeatherDates[0].map(date=>regionalWeather.find(day=>day.date===date)).filter(Boolean);
+  const overview=buttons[0]?.querySelector('.dwx');
+  if(overview)overview.textContent=tripDays.length?`💧 ${tripDays.reduce((sum,day)=>sum+day.rain,0).toFixed(1)}mm`:'Weather';
+  buttons.slice(1).forEach((button,i)=>{
+    const date=briefWeatherDates[i+1][0],weather=regionalWeather.find(day=>day.date===date),slot=button.querySelector('.dwx');
+    if(!slot)return;
+    slot.textContent=weather?`${weather.icon} ${weather.rain.toFixed(1)}mm`:'—';
+    if(weather)button.title=`${weather.label} · ${weather.high}° / ${weather.low}° · ${weather.rain.toFixed(1)} mm rain · ${weather.chance}% chance`;
+  });
+}
+
 const daysEl = document.getElementById('days');
 DAYS.forEach((d,i)=>{
   const b = document.createElement('button');
   b.className = 'day' + (d.all?' all':'');
-  b.innerHTML = `<div class="dw">${d.dow}</div><div class="dd">${d.dd}</div>`;
+  b.innerHTML = `<div class="dw">${d.dow}</div><div class="dd">${d.dd}</div><div class="dwx">${d.all?'Weather':'—'}</div>`;
   b.onclick = ()=>render(i);
   daysEl.appendChild(b);
 });
@@ -791,7 +811,7 @@ map.on('zoomend',()=>map.getContainer().classList.toggle('zfar',map.getZoom()<11
 if(vw()<=960){document.getElementById('plan').classList.add('min');document.getElementById('tPlan').classList.remove('on');}
 render(0);
 setTimeout(()=>render(0),200);
-TripWeather.load().then(days=>{regionalWeather=days;paintBrief(DAYS[cur])}).catch(()=>{weatherFailed=true;paintBrief(DAYS[cur])});
+TripWeather.load().then(days=>{regionalWeather=days;paintDateWeather();paintBrief(DAYS[cur])}).catch(()=>{weatherFailed=true;paintDateWeather();paintBrief(DAYS[cur])});
 </script>
 </body>
 </html>
