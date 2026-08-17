@@ -96,6 +96,20 @@ a{color:inherit;text-decoration:none}
 .quote span{color:var(--amber)}
 .by{font-size:9px;color:#6f8996;margin-top:7px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
 
+/* ============ regional weather ============ */
+.weather{flex:0 0 auto;margin:0 0 12px;min-width:0}
+.wxhead{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:8.5px;font-weight:900;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.wxhead b{color:var(--blue)}.wxhead a{margin-left:auto;color:#6f8996;font-size:8px}
+.wxcards{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}.wxcards::-webkit-scrollbar{display:none}
+.wxcard{flex:1 0 98px;min-width:98px;border:1px solid var(--line);border-radius:10px;background:rgba(22,38,46,.92);
+  padding:8px 9px;display:grid;grid-template-columns:auto 1fr;column-gap:7px;align-items:center}
+.wxday{grid-column:1/-1;font-size:8px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+.wxicon{font-size:19px;line-height:1}.wxtemp{font-size:13px;font-weight:900;line-height:1}.wxtemp small{font-size:9px;color:var(--muted)}
+.wxrain{grid-column:1/-1;font-size:9px;font-weight:800;color:#b9d9ea;margin-top:6px}.wxwind{color:var(--muted);font-weight:700}
+.wxstate{border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:var(--muted);font-size:10px;background:rgba(22,38,46,.75)}
+.wxretry{border:0;background:none;color:var(--orange2);font:inherit;font-size:10px;font-weight:800;cursor:pointer;padding:0}
+
 /* ============ chrome ============ */
 #bar{position:fixed;top:0;left:0;right:0;height:var(--bar);z-index:60;display:flex;align-items:center;gap:13px;
   padding:0 22px;background:linear-gradient(180deg,rgba(13,23,29,.97),rgba(13,23,29,.7) 72%,transparent);
@@ -392,6 +406,7 @@ a{color:inherit;text-decoration:none}
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="weather.js"></script>
 <script>
 /* ---------- photography (shared with the map page) ---------- */
 const IM = f => "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(f) + "?width=1400";
@@ -532,6 +547,38 @@ const daycount=document.getElementById('daycount');
 const isPaged=()=>matchMedia('(max-width:980px)').matches;
 const mapPane=document.getElementById('mappane');
 const mobileSteps=['OV','1','2–3','4','5–6'];
+const chapterWeatherDates=[
+  ['2026-08-18','2026-08-19','2026-08-20','2026-08-21','2026-08-22','2026-08-23'],
+  ['2026-08-18'],['2026-08-19','2026-08-20'],['2026-08-21'],['2026-08-22','2026-08-23']
+];
+const dayName=date=>new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',timeZone:'Europe/Rome'}).format(new Date(date+'T12:00:00+02:00'));
+const weatherCard=w=>`<div class="wxcard" title="${w.label}; Cortina regional forecast">
+  <div class="wxday">${dayName(w.date)}</div><div class="wxicon">${w.icon}</div>
+  <div class="wxtemp">${w.high}° <small>/ ${w.low}°</small></div>
+  <div class="wxrain">💧 ${w.rain.toFixed(1)} mm rain · ${w.chance}% <span class="wxwind">· wind ${w.wind} km/h</span></div>
+</div>`;
+const weatherHosts=secs.map((section,i)=>{
+  const host=document.createElement('section');host.className='weather';host.dataset.chapter=i;
+  host.setAttribute('aria-live','polite');
+  host.innerHTML='<div class="wxstate">Loading Cortina forecast…</div>';
+  section.querySelector('.chead').after(host);return host;
+});
+async function loadChapterWeather(force=false){
+  weatherHosts.forEach(host=>host.innerHTML='<div class="wxstate">Loading Cortina forecast…</div>');
+  try{
+    const forecast=await TripWeather.load(force);
+    weatherHosts.forEach((host,i)=>{
+      const wanted=chapterWeatherDates[i].map(date=>forecast.find(day=>day.date===date)).filter(Boolean);
+      host.innerHTML=wanted.length?`<div class="wxhead"><b>Live Cortina forecast</b><span>Valley baseline</span><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo ↗</a></div><div class="wxcards">${wanted.map(weatherCard).join('')}</div>`:
+        '<div class="wxstate">The trip dates are outside the live forecast window.</div>';
+    });
+  }catch{
+    weatherHosts.forEach(host=>{
+      host.innerHTML='<div class="wxstate">Forecast unavailable · <button class="wxretry" type="button">retry</button></div>';
+      host.querySelector('.wxretry').onclick=()=>loadChapterWeather(true);
+    });
+  }
+}
 function syncMapInteraction(){
   if(isPaged()){map.dragging.disable();map.touchZoom.disable()}
   else{map.dragging.enable();map.touchZoom.enable()}
@@ -544,6 +591,7 @@ secs.forEach((s,i)=>{
   a.setAttribute('aria-label',s.dataset.label);a.onclick=e=>{e.preventDefault();go(i)};
   steps.appendChild(a);
 });
+loadChapterWeather();
 const stepEls=[...steps.children];
 secs.forEach(s=>[...s.querySelectorAll('.t')].forEach((t,i)=>t.style.transitionDelay=(i*50)+'ms'));
 

@@ -102,6 +102,15 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 #brief .s .k{font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7f97a2;margin-top:2px}
 #brief .warn{margin-top:9px;font-size:11px;background:rgba(237,106,44,.15);border-left:2px solid var(--orange);
   padding:7px 10px;border-radius:0 7px 7px 0;color:#f3c6ad;line-height:1.5}
+#brief .wxhead{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:8px;font-weight:900;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+#brief .wxhead b{color:var(--blue)}#brief .wxhead a{margin-left:auto;color:#6f8996;text-decoration:none}
+#brief .wxcards{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-top:5px}#brief .wxcards::-webkit-scrollbar{display:none}
+#brief .wxcard{flex:1 0 82px;min-width:82px;border-radius:8px;background:rgba(255,255,255,.06);padding:6px 7px}
+#brief .wxday{font-size:7.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+#brief .wxmain{display:flex;align-items:center;gap:5px;margin-top:3px}.wxicon{font-size:16px}.wxtemp{font-size:11px;font-weight:900}
+#brief .wxrain{font-size:8.5px;color:#b9d9ea;font-weight:800;margin-top:3px;white-space:nowrap}
+#brief .wxstate{margin-top:9px;font-size:9px;color:var(--muted)}
 
 /* ================= PHOTO CARDS ================= */
 #cards{position:fixed;right:14px;top:calc(var(--topbar) + 14px);bottom:14px;width:var(--cards);z-index:900;
@@ -288,6 +297,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="weather.js"></script>
 <script>
 /* ==========================================================================
    DOLOMITES 2026 — THE BOYS' EXPEDITION
@@ -540,6 +550,11 @@ map.setView([46.52,11.98],10);
 
 const layer = L.layerGroup().addTo(map);      // routes + pins for the active day
 let showOpt = true, activeCards = [], cur = 0;
+let regionalWeather=null,weatherFailed=false;
+const briefWeatherDates=[
+  ['2026-08-18','2026-08-19','2026-08-20','2026-08-21','2026-08-22','2026-08-23'],
+  ['2026-08-18'],['2026-08-19'],['2026-08-20'],['2026-08-21'],['2026-08-22'],['2026-08-23']
+];
 
 const STYLE = {
   hike : {color:'#ED6A2C', weight:4,   opacity:.96},
@@ -711,7 +726,19 @@ function paintBrief(d){
   const b = document.getElementById('brief');
   b.innerHTML = `<div class="kick">${d.kick}</div><h3>${d.title}</h3><p>${d.text}</p>
     <div class="stats">${(d.stats||[]).map(s=>`<div class="s"><div class="v">${s[0]}</div><div class="k">${s[1]}</div></div>`).join('')}</div>
-    ${d.warn?`<div class="warn">${d.warn}</div>`:''}`;
+    ${d.warn?`<div class="warn">${d.warn}</div>`:''}${briefWeatherHTML(cur)}`;
+}
+
+function briefWeatherHTML(dayIndex){
+  if(weatherFailed)return '<div class="wxstate">Regional forecast unavailable.</div>';
+  if(!regionalWeather)return '<div class="wxstate">Loading Cortina forecast…</div>';
+  const fmt=date=>new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',timeZone:'Europe/Rome'}).format(new Date(date+'T12:00:00+02:00'));
+  const wanted=briefWeatherDates[dayIndex].map(date=>regionalWeather.find(day=>day.date===date)).filter(Boolean);
+  if(!wanted.length)return '<div class="wxstate">Trip dates outside the live forecast window.</div>';
+  return `<div class="wxhead"><b>Live Cortina forecast</b><span>valley baseline</span><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo ↗</a></div>
+    <div class="wxcards">${wanted.map(w=>`<div class="wxcard" title="${w.label}"><div class="wxday">${fmt(w.date)}</div>
+      <div class="wxmain"><span class="wxicon">${w.icon}</span><span class="wxtemp">${w.high}° / ${w.low}°</span></div>
+      <div class="wxrain">💧 ${w.rain.toFixed(1)} mm rain · ${w.chance}%</div></div>`).join('')}</div>`;
 }
 
 function paintNav(){
@@ -764,6 +791,7 @@ map.on('zoomend',()=>map.getContainer().classList.toggle('zfar',map.getZoom()<11
 if(vw()<=960){document.getElementById('plan').classList.add('min');document.getElementById('tPlan').classList.remove('on');}
 render(0);
 setTimeout(()=>render(0),200);
+TripWeather.load().then(days=>{regionalWeather=days;paintBrief(DAYS[cur])}).catch(()=>{weatherFailed=true;paintBrief(DAYS[cur])});
 </script>
 </body>
 </html>
