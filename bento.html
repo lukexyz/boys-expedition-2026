@@ -113,6 +113,7 @@ a{color:inherit;text-decoration:none}
 #daycount{display:none;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--cream);
   white-space:nowrap;min-width:112px;text-align:center}
 #daylabel{font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.mobile-label,.mobile-step{display:none}
 #prog{position:fixed;left:0;top:0;height:2.5px;background:var(--orange);z-index:70;width:0;transition:width .12s linear}
 .hint{position:fixed;left:26px;bottom:16px;z-index:55;font-size:9.5px;font-weight:800;letter-spacing:.16em;
   text-transform:uppercase;color:#66808d;transition:opacity .4s;pointer-events:none}
@@ -180,6 +181,8 @@ a{color:inherit;text-decoration:none}
   #bar .b,#bar .sub,#bar .sp,#daycount{display:none}
   #steps{display:flex;gap:4px}
   #steps a,.navarrow{width:34px;height:34px;border-radius:9px}
+  .desktop-label,.chapter-step{display:none}
+  .mobile-label,.mobile-step{display:inline}
   .navarrow{font-size:22px}
 }
 </style>
@@ -192,7 +195,7 @@ a{color:inherit;text-decoration:none}
   <span class="b">Dolomites <em>2026</em></span>
   <span class="sub">The Boys' Expedition</span>
   <span class="sp"></span>
-  <span id="daylabel">Day</span>
+  <span id="daylabel"><span class="desktop-label">Day</span><span class="mobile-label">Days</span></span>
   <button class="navarrow" id="prevDay" type="button" aria-label="Previous chapter">‹</button>
   <nav id="steps"></nav>
   <span id="daycount" aria-live="polite"></span>
@@ -523,6 +526,7 @@ const prevDay=document.getElementById('prevDay'),nextDay=document.getElementById
 const daycount=document.getElementById('daycount');
 const isPaged=()=>matchMedia('(max-width:980px)').matches;
 const mapPane=document.getElementById('mappane');
+const mobileSteps=['OV','1','2–3','4','5–6'];
 function syncMapInteraction(){
   if(isPaged()){map.dragging.disable();map.touchZoom.disable()}
   else{map.dragging.enable();map.touchZoom.enable()}
@@ -530,7 +534,8 @@ function syncMapInteraction(){
 let idx=Math.max(0,secs.findIndex(s=>'#'+s.id===location.hash));
 
 secs.forEach((s,i)=>{
-  const a=document.createElement('a');a.href='#'+s.id;a.textContent=i+1;
+  const a=document.createElement('a');a.href='#'+s.id;
+  a.innerHTML=`<span class="chapter-step">${i+1}</span><span class="mobile-step">${mobileSteps[i]}</span>`;
   a.setAttribute('aria-label',s.dataset.label);a.onclick=e=>{e.preventDefault();go(i)};
   steps.appendChild(a);
 });
